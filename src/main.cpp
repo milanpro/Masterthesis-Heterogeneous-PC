@@ -1,5 +1,6 @@
 #include <iostream>
 #include "csv_parser.hpp"
+#include "correlation/corOwn.cuh"
 #include "./State.cuh"
 int main(int argc, char const *argv[])
 {
@@ -39,8 +40,9 @@ int main(int argc, char const *argv[])
     uint64_t p = array_data.get()->n_cols;
     uint64_t observations = array_data.get()->n_rows;
     
-    State state = State(p, observations, alpha, 4);
-    
+    MMGPUState state = MMGPUState(p, observations, alpha, 4);
+    gpuPMCC(array_data.get()->begin(), p, observations, state.cor);
+
     std::cout << state.p << "\n";
     return 0;
 }

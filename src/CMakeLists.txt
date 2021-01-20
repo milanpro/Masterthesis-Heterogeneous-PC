@@ -9,6 +9,10 @@ set(SOURCE_FILES
     State.cu
     State.cuh
     cudaUtil.cuh
+    correlation/corHelper.cu
+    correlation/corOwn.cu
+    correlation/corOwn.cuh
+    util/constants.h
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})

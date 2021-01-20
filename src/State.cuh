@@ -15,41 +15,6 @@ others. (Data structure maybe change.)
 @param p number of variables.
 
 */
-struct State {
-  double *pMax;
-  int *adj;
-  double *cor;
-  int *sepSets;
-  uint64_t p;
-  int observations;
-  double alpha;
-  int maxCondSize;
-
-  State(uint64_t p, int observations, double alpha, int maxCondSize);
-
-  State(const State &state);
-
-  ~State();
-};
-
-struct GPUState {
-  double *pMax;
-  int *adj;
-  double *cor;
-  int *sepSets;
-  uint64_t p;
-  int observations;
-  double alpha;
-  int maxCondSize;
-  int *lock;
-  int *rowMapping;
-  int *colMapping;
-
-  GPUState(uint64_t p, int observations, double alpha, int maxCondSize);
-
-  void destroy();
-};
-
 struct MMGPUState {
   double *pMax;
   int *adj;
