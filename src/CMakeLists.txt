@@ -6,13 +6,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(SOURCE_FILES
     csv_parser.hpp
     csv_parser.cpp
-    State.cu
-    State.cuh
-    cudaUtil.cuh
     correlation/corHelper.cu
     correlation/corOwn.cu
     correlation/corOwn.cuh
+    independence/mm_indepTests.cu
+    independence/mm_indepTests.cuh
+    independence/mm_test.cu
+    independence/mm_test.cuh
+    independence/skeleton.cu
+    independence/skeleton.cuh
     util/constants.h
+    util/indepUtil.h
+    util/concurrentqueue.h
+    util/cudaUtil.cuh
+    util/GPUData.cuh
+    util/GPUData.cu
+    util/matrixPrint.cuh
+    util/memInfo.cuh
+    util/memInfo.cu
+    util/State.cu
+    util/State.cuh
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})

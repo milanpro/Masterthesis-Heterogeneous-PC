@@ -1,7 +1,9 @@
 #include <iostream>
 #include "csv_parser.hpp"
 #include "correlation/corOwn.cuh"
-#include "./State.cuh"
+#include "util/State.cuh"
+#include "independence/skeleton.cuh"
+
 int main(int argc, char const *argv[])
 {
     const char* filename;
@@ -42,7 +44,10 @@ int main(int argc, char const *argv[])
     
     MMGPUState state = MMGPUState(p, observations, alpha, 4);
     gpuPMCC(array_data.get()->begin(), p, observations, state.cor);
+    
+    calcSkeleton(&state, 1);
 
+    printMMSepsets(&state);
     std::cout << state.p << "\n";
     return 0;
 }
