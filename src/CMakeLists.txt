@@ -17,6 +17,8 @@ set(SOURCE_FILES
     independence/skeleton.cuh
     independence/cpu_L0.cu
     independence/cpu_L0.cuh
+    independence/gpu_L0.cu
+    independence/gpu_L0.cuh
     util/constants.hpp
     util/indepUtil.hpp
     util/concurrentqueue.hpp
@@ -51,6 +53,11 @@ target_link_libraries(heterogpc
     ${ARMADILLO_LIBRARIES}
     OpenMP::OpenMP_CXX
 )
+
+IF (OPENMP_FOUND) 
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}") 
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}") 
+ENDIF()  
 
 if(APPLE)
   # We need to add the path to the driver (libcuda.dylib) as an rpath, 

@@ -2,6 +2,7 @@
 #include "../util/matrixPrint.cuh"
 #include "../util/constants.hpp"
 #include "cpu_L0.cuh"
+#include "gpu_L0.cuh"
 #include "skeleton.cuh"
 #include "mm_test.cuh"
 #include <iostream>
@@ -20,18 +21,26 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
               << "  observations: " << state->observations
               << "  p: " << state->p << " gpusUsed: " << gpusUsed << std::endl;
 
-  TestResult res;
+  TestResult res, resCPU, resGPU;
   if (startLevel <= 0) {
-    auto taskQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+    auto cpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+    auto gpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
     for (int row = 0; row < state->p; row++)
     {
-      taskQueue->enqueue(SplitTask{row});
+      if (row % 2 == 0) {
+        cpuQueue->enqueue(SplitTask{row});
+      } else {
+        gpuQueue->enqueue(SplitTask{row});
+      }
     }
     
-    res = cpuIndTestL0(state, taskQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resCPU = cpuIndTestL0(state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resGPU = gpuIndTestL0(state, gpuQueue.get(), gpusUsed);
     if (VERBOSE) {
-      std::cout << "Order 0 finished with " << res.tests << " tests in "
-                << res.duration << " microseconds." << std::endl;
+      std::cout << "Order 0 finished with " << resCPU.tests + resGPU.tests << " tests in "
+                << resCPU.duration + resGPU.duration << " microseconds." << std::endl;
+      std::cout << "\t CPU time: " << resCPU.duration  << " GPU time: "
+                << resGPU.duration << " microseconds." << std::endl;
     }
   }
 

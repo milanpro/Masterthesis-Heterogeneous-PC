@@ -6,19 +6,21 @@
 #include <chrono>
 #include "omp.h"
 
+const int MULTITHREAD_THRESHHOLD = 100;
+
 TestResult cpuIndTestL0(MMGPUState *state, SplitTaskQueue *cpuQueue) {
   auto start = std::chrono::system_clock::now();
 
   auto p = state->p;
-  #pragma omp parallel
+  auto row_count = cpuQueue->size_approx();
+  #pragma omp parallel for if(row_count > MULTITHREAD_THRESHHOLD)
+  for(int _j = 0; _j < row_count; _j++)
   {
     SplitTask curTask;
-    while(cpuQueue->try_dequeue(curTask)) {
+    if(cpuQueue->try_dequeue(curTask)) {
       auto row = curTask.row;
-      //std::cout << "Row: " << row << "\n";
-      #pragma omp for
+      //std::cout << "ThreadID: " << omp_get_thread_num() << std::endl;
       for (int i = 0; i < p ; i++) {
-        //std::cout << "Col: " << i << " in Thread: " << omp_get_thread_num() << "\n";
         int adjIndex = row * p + i;
         if (state->adj[adjIndex]) {
           double pVal = mm_calcPValue(state->cor[adjIndex], state->observations);
@@ -32,7 +34,6 @@ TestResult cpuIndTestL0(MMGPUState *state, SplitTaskQueue *cpuQueue) {
       }
     }
   }
-
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now() - start)
     .count();
