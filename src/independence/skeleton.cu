@@ -1,11 +1,13 @@
 #include "../util/cudaUtil.cuh"
 #include "../util/matrixPrint.cuh"
-#include "../util/constants.h"
+#include "../util/constants.hpp"
+#include "cpu_L0.cuh"
 #include "skeleton.cuh"
 #include "mm_test.cuh"
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <memory>
 
 void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
                     std::unordered_map<std::string, uint64_t> *subSteps,
@@ -20,7 +22,13 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
 
   TestResult res;
   if (startLevel <= 0) {
-    res = MMtestL0(state, maxMem, gpusUsed);
+    auto taskQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+    for (int row = 0; row < state->p; row++)
+    {
+      taskQueue->enqueue(SplitTask{row});
+    }
+    
+    res = cpuIndTestL0(state, taskQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
     if (VERBOSE) {
       std::cout << "Order 0 finished with " << res.tests << " tests in "
                 << res.duration << " microseconds." << std::endl;

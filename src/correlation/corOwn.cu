@@ -1,4 +1,4 @@
-#include "../util/constants.h"
+#include "../util/constants.hpp"
 #include "corHelper.cuh"
 #include "corOwn.cuh"
 #include <cuda.h>

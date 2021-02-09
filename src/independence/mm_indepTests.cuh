@@ -1,5 +1,5 @@
 #pragma once
-#include "../util/indepUtil.h"
+#include "../util/indepUtil.hpp"
 #include <vector>
 
 __global__ void MMtestL0Triangle(MMGPUState state, int edgesPerGPU,

@@ -15,9 +15,11 @@ set(SOURCE_FILES
     independence/mm_test.cuh
     independence/skeleton.cu
     independence/skeleton.cuh
-    util/constants.h
-    util/indepUtil.h
-    util/concurrentqueue.h
+    independence/cpu_L0.cu
+    independence/cpu_L0.cuh
+    util/constants.hpp
+    util/indepUtil.hpp
+    util/concurrentqueue.hpp
     util/cudaUtil.cuh
     util/GPUData.cuh
     util/GPUData.cu
@@ -26,6 +28,8 @@ set(SOURCE_FILES
     util/memInfo.cu
     util/State.cu
     util/State.cuh
+    loadbalancing/balancer.cpp
+    loadbalancing/balancer.hpp
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})
@@ -33,6 +37,10 @@ add_executable(heterogpc main.cpp ${SOURCE_FILES})
 set_property(TARGET heterogpc 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
+set_property(TARGET heterogpc 
+             PROPERTY CUDA_ARCHITECTURES 70)
+
+find_package(OpenMP REQUIRED)
 find_package(GSL REQUIRED)
 find_package(Armadillo REQUIRED)
 
@@ -41,6 +49,7 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
 target_link_libraries(heterogpc
     GSL::gsl
     ${ARMADILLO_LIBRARIES}
+    OpenMP::OpenMP_CXX
 )
 
 if(APPLE)

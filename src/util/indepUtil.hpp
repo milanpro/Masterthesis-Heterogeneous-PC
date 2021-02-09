@@ -1,7 +1,7 @@
 #pragma once
 #include "./GPUData.cuh"
 #include "./State.cuh"
-#include "./concurrentqueue.h"
+#include "./concurrentqueue.hpp"
 #include "./cudaUtil.cuh"
 #include <algorithm>
 #include <memory>
@@ -52,17 +52,7 @@ bool next_combination(const Iterator first, Iterator k, const Iterator last) {
 }
 
 struct SplitTask {
-  int blockRow;
-  int blockCol;
-  int blockSize;
-};
-
-struct IndepTask {
-  int i;
-  int j;
-  int lvl;
-  std::vector<int> sep;
-  State *state;
+  int row;
 };
 
 struct TestResult {
@@ -71,5 +61,4 @@ struct TestResult {
   std::unordered_map<std::string, uint64_t> subSteps;
 };
 
-using TaskQueue = moodycamel::ConcurrentQueue<IndepTask>;
 using SplitTaskQueue = moodycamel::ConcurrentQueue<SplitTask>;

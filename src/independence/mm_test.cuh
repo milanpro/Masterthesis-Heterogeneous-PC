@@ -1,6 +1,6 @@
 #ifndef R_PACKAGE_SRC_MANAGEDMEMORY_INDEPENDENCE_MM_TEST_CUH_
 #define R_PACKAGE_SRC_MANAGEDMEMORY_INDEPENDENCE_MM_TEST_CUH_
-#include "../util/indepUtil.h"
+#include "../util/indepUtil.hpp"
 
 TestResult MMtestL0(MMGPUState *state, int blockSize = -1, int gpusUsed = 1);
 
