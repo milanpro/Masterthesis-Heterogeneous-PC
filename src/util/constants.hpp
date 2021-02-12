@@ -1,2 +1,2 @@
-const bool VERBOSE = true;
+extern bool VERBOSE;
 const int NUMTHREADS = 64;

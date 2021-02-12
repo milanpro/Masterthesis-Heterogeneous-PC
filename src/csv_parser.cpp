@@ -17,7 +17,7 @@ std::vector<std::string> parse_header(std::ifstream& file_input, std::vector<std
     return column_names;
 }
 
-std::vector<std::vector<double>> read_csv(const char* filename, std::vector<std::string>& column_names) {
+std::vector<std::vector<double>> read_csv(std::string filename, std::vector<std::string>& column_names) {
     std::ifstream file_input(filename);
     if (!file_input.is_open()) {
         std::cout << "Could not find file '" << filename << '\'' << std::endl;
@@ -61,7 +61,7 @@ std::vector<std::vector<double>> read_csv(const char* filename, std::vector<std:
     return data;
 }
 
-std::shared_ptr<arma::mat> CSVParser::read_csv_to_mat(const char* filename, std::vector<std::string>& column_names) {
+std::shared_ptr<arma::mat> CSVParser::read_csv_to_mat(std::string filename, std::vector<std::string>& column_names) {
     auto data = read_csv(filename, column_names);
 
     auto nr_observations = data[1].size();

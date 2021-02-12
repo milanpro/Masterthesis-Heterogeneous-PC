@@ -20,7 +20,6 @@ __global__ void testRowL1(MMGPUState state, int row_node) {
 
 TestResult gpuIndTest(int level, MMGPUState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount) {
   auto start = std::chrono::system_clock::now();
-  cudaSetDevice(0);
   int numthreads = min((int)state->p, NUMTHREADS);
   dim3 block(numthreads), grid((state->p + numthreads - 1) / numthreads);
   if (level == 1) {

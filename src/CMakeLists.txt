@@ -47,12 +47,12 @@ set_property(TARGET heterogpc
 find_package(OpenMP REQUIRED)
 find_package(GSL REQUIRED)
 find_package(Armadillo REQUIRED)
-
-include_directories(${ARMADILLO_INCLUDE_DIRS})
+FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 
 target_link_libraries(heterogpc
     GSL::gsl
     ${ARMADILLO_LIBRARIES}
+    ${Boost_LIBRARIES}
     OpenMP::OpenMP_CXX
 )
 

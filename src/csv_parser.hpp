@@ -5,5 +5,5 @@
 
 class CSVParser {
     public:
-        static std::shared_ptr<arma::mat> read_csv_to_mat(const char* filename, std::vector<std::string>& column_names);
+        static std::shared_ptr<arma::mat> read_csv_to_mat(std::string filename, std::vector<std::string>& column_names);
 };

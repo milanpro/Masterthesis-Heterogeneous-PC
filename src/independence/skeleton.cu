@@ -33,7 +33,7 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
       }
     }
     
-    resCPU = cpuIndTest(0, state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resCPU = cpuIndTest(0, state, cpuQueue.get());
     resGPU = gpuIndTest(0, state, gpuQueue.get(), maxEdgeCount);
     if (VERBOSE) {
       std::cout << "Order 0 finished with " << resCPU.tests + resGPU.tests << " tests in "
@@ -58,7 +58,7 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
       }
     }
     
-    resCPU = cpuIndTest(1, state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resCPU = cpuIndTest(1, state, cpuQueue.get());
     resGPU = gpuIndTest(1, state, gpuQueue.get(), maxEdgeCount);
     if (VERBOSE) {
       std::cout << "Order 1 finished with " << resCPU.tests + resGPU.tests << " tests in "
