@@ -410,71 +410,6 @@ __global__ void MMtestLNKernel(MMGPUState state, int edgesPerGPU,
   }
 }
 
-TestResult MMtestL0(MMGPUState *state, int blockSize, int gpusUsed) {
-  auto start = std::chrono::system_clock::now();
-  std::vector<std::thread> threads;
-  int edgesPerGPU =
-      (state->p * (state->p - 1L) / 2 + (gpusUsed - 1)) / gpusUsed;
-  int numthreads = min(edgesPerGPU, NUMTHREADS);
-  dim3 block(numthreads), grid((edgesPerGPU + numthreads - 1) / numthreads);
-
-  for(int i = 0; i < gpusUsed; i++){
-    threads.push_back(std::thread([&, i]() 
-    {
-      cudaSetDevice(i);
-      MMtestL0Triangle<<<grid, block>>>(*state, edgesPerGPU, i);
-      cudaDeviceSynchronize();
-      getLastCudaError("L0 Kernel execution failed");
-    }));
-  }
-
-  std::for_each(threads.begin(), threads.end(), [](std::thread &t) 
-  {
-      t.join();
-  });
-
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::system_clock::now() - start)
-                      .count();
-
-  std::unordered_map<std::string, uint64_t> subTimes(
-      {{"Copy", 0}, {"Test", 0}});
-  return {static_cast<uint64_t>(duration), (state->p * (state->p - 1L)) / 2,
-          subTimes};
-}
-
-TestResult MMtestL1(MMGPUState *state, int blockSize, int gpusUsed) {
-  auto start = std::chrono::system_clock::now();
-  std::vector<std::thread> threads;
-  int edgesPerGPU =
-      (state->p * (state->p - 1L) / 2 + (gpusUsed - 1)) / gpusUsed;
-  int numthreads = min(state->p, (uint64_t)NUMTHREADS);
-  dim3 block(numthreads), grid(edgesPerGPU);
-
-  for(int i = 0; i < gpusUsed; i++){
-    threads.push_back(std::thread([&, i]() 
-    {
-      cudaSetDevice(i);
-      MMtestL1Triangle<<<grid, block, sizeof(double) * numthreads>>>(*state, edgesPerGPU, i);
-      cudaDeviceSynchronize();
-      getLastCudaError("L1 Kernel execution failed");
-    }));
-  }
-
-  std::for_each(threads.begin(), threads.end(), [](std::thread &t) 
-  {
-      t.join();
-  });
-
-
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::system_clock::now() - start)
-                      .count();
-
-  std::unordered_map<std::string, uint64_t> subTimes(
-      {{"Copy", 0}, {"Test", 0}});
-  return {static_cast<uint64_t>(duration), 0, subTimes};
-}
 
 TestResult MMtestLN(MMGPUState *state, int blockSize, int gpusUsed, int lvl) {
   auto start_compact_time = std::chrono::system_clock::now();
@@ -567,8 +502,5 @@ TestResult MMtestLN(MMGPUState *state, int blockSize, int gpusUsed, int lvl) {
                       std::chrono::system_clock::now() - start)
                       .count();
 
-  std::unordered_map<std::string, uint64_t> subTimes(
-      {{"Copy", 0}, {"Test", 0}, {"Compact_Time", compact_time}});
-
-  return {static_cast<uint64_t>(duration), 0, subTimes};
+  return {static_cast<uint64_t>(duration), 0};
 }

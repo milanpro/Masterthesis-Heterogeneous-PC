@@ -1,8 +1,8 @@
 #include "../util/cudaUtil.cuh"
 #include "../util/matrixPrint.cuh"
 #include "../util/constants.hpp"
-#include "cpu_L0.cuh"
-#include "gpu_L0.cuh"
+#include "cpu.cuh"
+#include "gpu.cuh"
 #include "skeleton.cuh"
 #include "mm_test.cuh"
 #include <iostream>
@@ -11,11 +11,10 @@
 #include <memory>
 
 void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
-                    std::unordered_map<std::string, uint64_t> *subSteps,
                     int startLevel) {
 
   int devID = setCudaDevice();
-
+  int maxEdgeCount = state->p * (state->p - 1L) / 2;
   if (VERBOSE)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
@@ -35,7 +34,7 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
     }
     
     resCPU = cpuIndTest(0, state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
-    resGPU = gpuIndTest(0, state, gpuQueue.get());
+    resGPU = gpuIndTest(0, state, gpuQueue.get(), maxEdgeCount);
     if (VERBOSE) {
       std::cout << "Order 0 finished with " << resCPU.tests + resGPU.tests << " tests in "
                 << max(resCPU.duration,resGPU.duration) << " µs." << std::endl;
@@ -48,16 +47,27 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
     return;
   }
   if (startLevel <= 1) {
-    res = MMtestL1(state, maxMem, gpusUsed);
+    auto cpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+    auto gpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+    for (int row = 0; row < state->p; row++)
+    {
+      if (row % 2 == 0) {
+        cpuQueue->enqueue(SplitTask{row});
+      } else {
+        gpuQueue->enqueue(SplitTask{row});
+      }
+    }
+    
+    resCPU = cpuIndTest(1, state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resGPU = gpuIndTest(1, state, gpuQueue.get(), maxEdgeCount);
+    if (VERBOSE) {
+      std::cout << "Order 1 finished with " << resCPU.tests + resGPU.tests << " tests in "
+                << max(resCPU.duration,resGPU.duration) << " µs." << std::endl;
+      std::cout << "\t CPU time: " << resCPU.duration  << " µs GPU time: "
+                << resGPU.duration << " µs." << std::endl;
+    }
   }
-  cudaDeviceSynchronize();
-  if (VERBOSE) {
-    std::cout << "Order 1 finished with " << res.tests << " tests in "
-              << res.duration << " µs." << std::endl;
-  }
-  if (!res.subSteps.empty() && subSteps != nullptr) {
-    *subSteps = res.subSteps;
-  }
+
 
   int lvl = (startLevel < 2) ? 2 : startLevel;
   while(lvl <= state->maxCondSize){

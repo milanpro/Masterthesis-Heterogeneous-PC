@@ -19,14 +19,19 @@ TestResult cpuIndTest(int level, MMGPUState *state, SplitTaskQueue *cpuQueue) {
     if(cpuQueue->try_dequeue(curTask)) {
       auto row_node = curTask.row;
       for (int col_node = 0; col_node < row_node ; col_node++) {
-        testRowTriangluar(level, *state, row_node, col_node);
+        switch (level) {
+          case 0:
+            testRowL0TriangluarCPU(state, row_node, col_node);
+            break;
+          case 1:
+            testRowL1TriangluarCPU(state, row_node, col_node);
+            break;
+        }
       }
     }
   }
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now() - start)
     .count();
-  std::unordered_map<std::string, uint64_t> subTimes(
-      {{"SubMat", 0}, {"Test", 0}, {"Copy", 0}, {"Merge", 0}});
-  return {static_cast<uint64_t>(duration), 0, subTimes};
+  return {static_cast<uint64_t>(duration), 0};
 };

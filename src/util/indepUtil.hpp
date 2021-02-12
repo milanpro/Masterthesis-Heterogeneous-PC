@@ -6,14 +6,10 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #define NUMTHREADS 64
-
-typedef std::unordered_map<int, std::unordered_set<int>> SepSets;
 
 template <typename Iterator>
 bool next_combination(const Iterator first, Iterator k, const Iterator last) {
@@ -58,7 +54,6 @@ struct SplitTask {
 struct TestResult {
   uint64_t duration;
   uint64_t tests;
-  std::unordered_map<std::string, uint64_t> subSteps;
 };
 
 using SplitTaskQueue = moodycamel::ConcurrentQueue<SplitTask>;
