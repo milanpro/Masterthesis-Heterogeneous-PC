@@ -1,6 +1,6 @@
 #include "../util/indepUtil.hpp"
 #include "../util/State.cuh"
-#include "mm_indepTests.cuh"
+#include "rowIndTest.cuh"
 #include <unordered_map>
 #include <iostream>
 #include <chrono>
@@ -8,29 +8,18 @@
 
 const int MULTITHREAD_THRESHHOLD = 100;
 
-TestResult cpuIndTestL0(MMGPUState *state, SplitTaskQueue *cpuQueue) {
+TestResult cpuIndTest(int level, MMGPUState *state, SplitTaskQueue *cpuQueue) {
   auto start = std::chrono::system_clock::now();
 
-  auto p = state->p;
   auto row_count = cpuQueue->size_approx();
   #pragma omp parallel for if(row_count > MULTITHREAD_THRESHHOLD)
   for(int _j = 0; _j < row_count; _j++)
   {
     SplitTask curTask;
     if(cpuQueue->try_dequeue(curTask)) {
-      auto row = curTask.row;
-      //std::cout << "ThreadID: " << omp_get_thread_num() << std::endl;
-      for (int i = 0; i < p ; i++) { // triangle of matrix and ignore diagonal for perf boost
-        int adjIndex = row * p + i;
-        if (state->adj[adjIndex]) {
-          double pVal = mm_calcPValue(state->cor[adjIndex], state->observations);
-          state->pMax[adjIndex] = pVal;
-          if (state->pMax[adjIndex] >= state->alpha) {
-            state->adj[adjIndex] = 0.f;
-            state->sepSets[(row * state->maxCondSize) +
-                      (i * state->maxCondSize)] = -2;
-          }
-        }
+      auto row_node = curTask.row;
+      for (int col_node = 0; col_node < row_node ; col_node++) {
+        testRowTriangluar(level, *state, row_node, col_node);
       }
     }
   }

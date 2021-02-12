@@ -34,13 +34,13 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
       }
     }
     
-    resCPU = cpuIndTestL0(state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
-    resGPU = gpuIndTestL0(state, gpuQueue.get());
+    resCPU = cpuIndTest(0, state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
+    resGPU = gpuIndTest(0, state, gpuQueue.get());
     if (VERBOSE) {
       std::cout << "Order 0 finished with " << resCPU.tests + resGPU.tests << " tests in "
-                << max(resCPU.duration,resGPU.duration) << " microseconds." << std::endl;
-      std::cout << "\t CPU time: " << resCPU.duration  << " GPU time: "
-                << resGPU.duration << " microseconds." << std::endl;
+                << max(resCPU.duration,resGPU.duration) << " µs." << std::endl;
+      std::cout << "\t CPU time: " << resCPU.duration  << " µs GPU time: "
+                << resGPU.duration << " µs." << std::endl;
     }
   }
 
@@ -53,7 +53,7 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
   cudaDeviceSynchronize();
   if (VERBOSE) {
     std::cout << "Order 1 finished with " << res.tests << " tests in "
-              << res.duration << " microseconds." << std::endl;
+              << res.duration << " µs." << std::endl;
   }
   if (!res.subSteps.empty() && subSteps != nullptr) {
     *subSteps = res.subSteps;

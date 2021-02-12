@@ -15,10 +15,12 @@ set(SOURCE_FILES
     independence/mm_test.cuh
     independence/skeleton.cu
     independence/skeleton.cuh
-    independence/cpu_L0.cu
-    independence/cpu_L0.cuh
-    independence/gpu_L0.cu
-    independence/gpu_L0.cuh
+    independence/cpu.cu
+    independence/cpu.cuh
+    independence/gpu.cu
+    independence/gpu.cuh
+    independence/rowIndTest.cu
+    independence/rowIndTest.cuh
     util/constants.hpp
     util/indepUtil.hpp
     util/concurrentqueue.hpp
