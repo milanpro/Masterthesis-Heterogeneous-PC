@@ -20,7 +20,7 @@ TestResult cpuIndTestL0(MMGPUState *state, SplitTaskQueue *cpuQueue) {
     if(cpuQueue->try_dequeue(curTask)) {
       auto row = curTask.row;
       //std::cout << "ThreadID: " << omp_get_thread_num() << std::endl;
-      for (int i = 0; i < p ; i++) {
+      for (int i = 0; i < p ; i++) { // triangle of matrix and ignore diagonal for perf boost
         int adjIndex = row * p + i;
         if (state->adj[adjIndex]) {
           double pVal = mm_calcPValue(state->cor[adjIndex], state->observations);

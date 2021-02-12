@@ -35,10 +35,10 @@ void calcSkeleton(MMGPUState *state, int gpusUsed, int maxMem,
     }
     
     resCPU = cpuIndTestL0(state, cpuQueue.get()); //MMtestL0(state, maxMem, gpusUsed);
-    resGPU = gpuIndTestL0(state, gpuQueue.get(), gpusUsed);
+    resGPU = gpuIndTestL0(state, gpuQueue.get());
     if (VERBOSE) {
       std::cout << "Order 0 finished with " << resCPU.tests + resGPU.tests << " tests in "
-                << resCPU.duration + resGPU.duration << " microseconds." << std::endl;
+                << max(resCPU.duration,resGPU.duration) << " microseconds." << std::endl;
       std::cout << "\t CPU time: " << resCPU.duration  << " GPU time: "
                 << resGPU.duration << " microseconds." << std::endl;
     }
