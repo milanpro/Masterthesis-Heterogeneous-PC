@@ -1,4 +1,4 @@
-#include "../util/indepUtil.hpp"
-#include "../util/State.cuh"
+#include "../util/indep_util.hpp"
+#include "../util/state.cuh"
 
-TestResult cpuIndTest(int level, MMGPUState *state, SplitTaskQueue *cpuQueue);
+TestResult cpuIndTest(int level, GPUState *state, SplitTaskQueue *cpuQueue);

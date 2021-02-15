@@ -1,5 +1,3 @@
-#ifndef R_PACKAGE_SRC_UTIL_MATRIXPRINT_CUH_
-#define R_PACKAGE_SRC_UTIL_MATRIXPRINT_CUH_
 #include <iostream>
 
 template <typename T>
@@ -26,4 +24,3 @@ void printGPUMatrix(int m, int n, const T *d_A, const char *name) {
   }
   delete[] h_A;
 }
-#endif // R_PACKAGE_SRC_UTIL_MATRIXPRINT_CUH_

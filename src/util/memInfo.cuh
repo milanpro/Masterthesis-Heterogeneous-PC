@@ -1,4 +1,0 @@
-#ifndef R_PACKAGE_SRC_UTIL_MEMINFO_CUH_
-#define R_PACKAGE_SRC_UTIL_MEMINFO_CUH_
-void printMemInfo();
-#endif // R_PACKAGE_SRC_UTIL_MEMINFO_CUH_

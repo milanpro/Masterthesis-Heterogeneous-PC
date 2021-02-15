@@ -2,7 +2,7 @@
 #include <boost/program_options.hpp>
 #include "csv_parser.hpp"
 #include "correlation/corOwn.cuh"
-#include "util/State.cuh"
+#include "util/state.cuh"
 #include "independence/skeleton.cuh"
 namespace po = boost::program_options;
 #include <iostream>
@@ -79,13 +79,13 @@ int main(int argc, char const *argv[])
             return -1;
         }
 
-        MMGPUState state = MMGPUState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel);
+        GPUState state = GPUState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
         calcSkeleton(&state, 1);
     }
     else
     {
-        MMGPUState state = MMGPUState(array_data.get()->n_cols, array_data.get()->n_rows, alpha, maxLevel);
+        GPUState state = GPUState(array_data.get()->n_cols, array_data.get()->n_rows, alpha, maxLevel);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor);
         calcSkeleton(&state, 1);
     }

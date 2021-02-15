@@ -1,2 +1,2 @@
 extern bool VERBOSE;
-const int NUMTHREADS = 64;
+#define NUMTHREADS 64
