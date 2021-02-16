@@ -71,8 +71,9 @@ __global__ void compactCU(GPUState state, int deviceId, int numberOfGPUs) {
 
 void callCompact(GPUState *state, int deviceId, int numberOfGPUs,
                  int d_rowCount) {
+  cudaSetDevice(deviceId);
   compactCU<<<d_rowCount, 1024, state->p * sizeof(int)>>>(*state, deviceId,
                                                           numberOfGPUs);
-  checkLastCudaError("Compacting failed");
   cudaDeviceSynchronize();
+  checkLastCudaError("Compacting failed");
 }

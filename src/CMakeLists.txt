@@ -14,10 +14,10 @@ set(SOURCE_FILES
     correlation/corHelper.cu
     correlation/corOwn.cu
     correlation/corOwn.cuh
-    independence/skeleton.cu
-    independence/skeleton.cuh
-    independence/cpu.cu
-    independence/cpu.cuh
+    independence/skeleton.cpp
+    independence/skeleton.hpp
+    independence/cpu.cpp
+    independence/cpu.hpp
     independence/gpu.cu
     independence/gpu.cuh
     independence/compact.cu
@@ -69,7 +69,9 @@ IF (OPENMP_FOUND)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}") 
 ENDIF()  
 
-SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
+IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
+ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 if(APPLE)
   # We need to add the path to the driver (libcuda.dylib) as an rpath, 

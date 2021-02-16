@@ -178,7 +178,7 @@ __global__ void testRowLN(GPUState state, int row_node) {
   }
 }
 
-TestResult gpuIndTest(int level, GPUState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount) {
+TestResult gpuIndTest(int level, GPUState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount, int numberOfGPUs) {
   auto start = std::chrono::system_clock::now();
   int numthreads = min((int)state->p, NUMTHREADS);
   dim3 block(numthreads), grid((state->p + numthreads - 1) / numthreads);
@@ -193,6 +193,8 @@ TestResult gpuIndTest(int level, GPUState *state, SplitTaskQueue *gpuQueue, int 
   for(int i = 0; i < row_count; i++){
     SplitTask curTask;
     if(gpuQueue->try_dequeue(curTask)) {
+      int deviceId = i % numberOfGPUs;
+      cudaSetDevice(deviceId);
       switch (level) {
         case 0:
           testRowL0<<<grid, block>>>(*state, curTask.row);
@@ -209,8 +211,8 @@ TestResult gpuIndTest(int level, GPUState *state, SplitTaskQueue *gpuQueue, int 
       }
       std::string msg =
       "L " + std::to_string(level) + " Kernel execution failed";
-      checkLastCudaError(msg.c_str());
       cudaDeviceSynchronize();
+      checkLastCudaError(msg.c_str());
     }
   }
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
