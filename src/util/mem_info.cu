@@ -1,4 +1,4 @@
-#include "memInfo.cuh"
+#include "mem_info.cuh"
 #include <iostream>
 
 void printMemInfo() {
