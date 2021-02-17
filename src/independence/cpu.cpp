@@ -72,7 +72,7 @@ namespace CPU
         {
           if (state->adj_compact[row_node * p + next] != 0 || state->adj_compact[col_node * p + next] != 0)
           {
-            int pVal = pValL1(
+            double pVal = pValL1(
                 state->cor[idx],
                 state->cor[row_node * p + next],
                 state->cor[col_node * p + next], state->observations);

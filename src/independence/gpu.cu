@@ -189,7 +189,7 @@ namespace GPU {
     for(int i = 0; i < row_count; i++){
       SplitTask curTask;
       if(gpuQueue->try_dequeue(curTask)) {
-        int deviceId = i % numberOfGPUs;
+        int deviceId = i % numberOfGPUs; // Maybe split in parts instead of RR
         cudaSetDevice(deviceId);
         switch (level) {
           case 0:
