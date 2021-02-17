@@ -1,4 +1,7 @@
 #include "../util/indep_util.hpp"
 #include "../util/state.cuh"
 
-TestResult cpuIndTest(int level, GPUState *state, SplitTaskQueue *cpuQueue);
+namespace CPU
+{
+  TestResult executeLevel(int level, MMState *state, SplitTaskQueue *cpuQueue);
+}

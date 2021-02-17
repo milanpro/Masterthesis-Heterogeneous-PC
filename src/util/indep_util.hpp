@@ -5,6 +5,7 @@
 struct SplitTask
 {
   int row;
+  int rowCount;
 };
 
 struct TestResult

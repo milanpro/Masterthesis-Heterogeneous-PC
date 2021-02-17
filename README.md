@@ -12,3 +12,6 @@ https://github.com/cran/pcalg
 Can be found in: `/home/Christopher.Hagedorn/genData`
 
 `/home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc --corr -i "/home/Christopher.Hagedorn/genData/TCGA-GBM-100-cor.csv" -o 3190 -v > log.txt`
+
+#### Debugging
+/usr/local/cuda/bin/cuda-gdb /home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc

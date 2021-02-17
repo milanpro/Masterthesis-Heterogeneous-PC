@@ -1,4 +1,6 @@
 #include "../util/indep_util.hpp"
 #include "../util/state.cuh"
 
-TestResult gpuIndTest(int level, GPUState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount, int numberOfGPUs);
+namespace GPU {
+  TestResult executeLevel(int level, MMState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount, int numberOfGPUs);
+}

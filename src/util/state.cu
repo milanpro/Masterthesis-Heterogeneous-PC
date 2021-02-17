@@ -1,7 +1,7 @@
 #include "state.cuh"
 #include <algorithm>
 
-GPUState::GPUState(uint64_t p, int observations, double alpha, int maxLevel)
+MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel)
     : p(p), observations(observations), alpha(alpha), maxLevel(maxLevel) {
   maxCondSize = std::max(maxLevel, 1);
   checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
@@ -26,7 +26,7 @@ GPUState::GPUState(uint64_t p, int observations, double alpha, int maxLevel)
   max_adj[0] = p;
 }
 
-void GPUState::destroy() {
+void MMState::destroy() {
   checkCudaErrors(cudaFree(adj));
   checkCudaErrors(cudaFree(cor));
   checkCudaErrors(cudaFree(pMax));
