@@ -44,10 +44,6 @@ inline void __checkLastCudaError(const char *errorMessage, const char *file,
 
 extern __device__ double PYTHAG(double a, double b);
 
-extern __host__ __device__ double calcPValue(double r, int sampleSize);
-
-extern __host__ __device__ double pValL1(double x1, double x2, double x3, int sampleSize);
-
 extern __host__ __device__ size_t binomialCoeff(int n, int k);
 
 extern __host__ __device__ void ithCombination(int *sepset_nodes, size_t comb_number,

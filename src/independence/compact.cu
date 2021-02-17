@@ -1,7 +1,7 @@
 #include "compact.cuh"
 #include "../util/cuda_util.cuh"
 
-__global__ void compactCU(GPUState state, int deviceId, int numberOfGPUs) {
+__global__ void compactCU(MMState state, int deviceId, int numberOfGPUs) {
   int row_id = (blockIdx.x * numberOfGPUs) + deviceId;
   if (row_id > state.p){
     return;
@@ -69,7 +69,7 @@ __global__ void compactCU(GPUState state, int deviceId, int numberOfGPUs) {
   }
 }
 
-void callCompact(GPUState *state, int deviceId, int numberOfGPUs,
+void callCompact(MMState *state, int deviceId, int numberOfGPUs,
                  int d_rowCount) {
   cudaSetDevice(deviceId);
   compactCU<<<d_rowCount, 1024, state->p * sizeof(int)>>>(*state, deviceId,

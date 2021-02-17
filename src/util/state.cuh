@@ -17,7 +17,7 @@ others. (Data structure maybe change.)
 
 */
 
-struct GPUState {
+struct MMState {
   double *pMax;
   int *adj;
   int *adj_compact;
@@ -31,7 +31,7 @@ struct GPUState {
   int *lock;
   int maxLevel;
 
-  GPUState(uint64_t p, int observations, double alpha, int maxLevel);
+  MMState(uint64_t p, int observations, double alpha, int maxLevel);
 
   void destroy();
 };

@@ -13,7 +13,7 @@
 #include <thread>
 #include <future>
 
-void calcLevel(GPUState *state, int maxMem, int maxEdgeCount, int level, int numberOfGPUs)
+void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numberOfGPUs)
 {
   if (level >= 2)
   {
@@ -32,17 +32,17 @@ void calcLevel(GPUState *state, int maxMem, int maxEdgeCount, int level, int num
   auto gpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
   for (int row = 0; row < state->p; row++)
   {
-    if (true)
+    if (row % 3 == 0)
     {
-      cpuQueue->enqueue(SplitTask{row});
+      cpuQueue->enqueue(SplitTask{row, 1});
     }
-    else
+    else if (row % 3 == 1)
     {
-      gpuQueue->enqueue(SplitTask{row});
+      gpuQueue->enqueue(SplitTask{row, 2});
     }
   }
-  auto resCPUFuture = std::async(cpuIndTest, level, state, cpuQueue.get());
-  auto resGPUFuture = std::async(gpuIndTest, level, state, gpuQueue.get(), maxEdgeCount, numberOfGPUs);
+  auto resCPUFuture = std::async(CPU::executeLevel, level, state, cpuQueue.get());
+  auto resGPUFuture = std::async(GPU::executeLevel, level, state, gpuQueue.get(), maxEdgeCount, numberOfGPUs);
 
   TestResult resCPU = resCPUFuture.get();
   TestResult resGPU = resGPUFuture.get();
@@ -56,7 +56,7 @@ void calcLevel(GPUState *state, int maxMem, int maxEdgeCount, int level, int num
   }
 }
 
-void calcSkeleton(GPUState *state, int numberOfGPUs, int maxMem,
+void calcSkeleton(MMState *state, int numberOfGPUs, int maxMem,
                   int startLevel)
 {
   int maxEdgeCount = state->p * (state->p - 1L) / 2;
@@ -65,7 +65,7 @@ void calcSkeleton(GPUState *state, int numberOfGPUs, int maxMem,
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
-  for (int lvl = startLevel; lvl <= state->maxCondSize; lvl++)
+  for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
     calcLevel(state, maxMem, maxEdgeCount, lvl, numberOfGPUs);
   }
@@ -76,7 +76,7 @@ void calcSkeleton(GPUState *state, int numberOfGPUs, int maxMem,
   }
 }
 
-void printSepsets(GPUState *state)
+void printSepsets(MMState *state)
 {
   int nrEdges = 0;
   for (int i = 0; i < state->p; i++)
