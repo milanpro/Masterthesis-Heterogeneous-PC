@@ -23,7 +23,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel)
   std::fill_n(sepSets, p * p * maxCondSize, -1);
 
   memset(lock, 0, (uint64_t)sizeof(int) * p * p);
-  max_adj[0] = p;
+  max_adj[0] = (int)p;
 }
 
 void MMState::destroy() {

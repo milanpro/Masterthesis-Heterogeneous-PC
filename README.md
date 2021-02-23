@@ -17,5 +17,5 @@ Can be found in: `/home/Christopher.Hagedorn/genData`
 /usr/local/cuda/bin/cuda-gdb /home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc
 
 #### Bugs
-
+https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded
 Prevent threading segfault : `export OPENBLAS_NUM_THREADS=1`

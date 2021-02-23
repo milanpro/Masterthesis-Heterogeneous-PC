@@ -24,7 +24,6 @@ set(SOURCE_FILES
     independence/compact.cuh
     util/constants.hpp
     util/indep_util.hpp
-    util/concurrentqueue.h
     util/cuda_util.cu
     util/cuda_util.cuh
     util/matrix_print.cuh

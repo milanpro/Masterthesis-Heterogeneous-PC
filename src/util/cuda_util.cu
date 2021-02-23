@@ -42,7 +42,7 @@ __host__ __device__ void ithCombination(int *sepset_nodes, size_t comb_number,
     }
     while (sum <= comb_number) {
       sepset_nodes[i]++;
-      tmp = binomialCoeff(neighbours - sepset_nodes[i], level - (i + 1));
+      tmp = (int) binomialCoeff((int) neighbours - sepset_nodes[i], level - (i + 1));
       sum = sum + tmp;
     }
     sum = sum - tmp;

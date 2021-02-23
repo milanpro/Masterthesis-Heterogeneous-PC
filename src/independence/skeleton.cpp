@@ -3,21 +3,18 @@
 #include "../util/constants.hpp"
 #include "cpu.hpp"
 #include "gpu.cuh"
-#include <armadillo>
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
 #include <string>
-#include <unordered_set>
-#include <memory>
-#include <thread>
 #include <future>
+#include <vector>
 
-void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numberOfGPUs)
+void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numberOfGPUs, bool verbose)
 {
   if (level >= 2)
   {
-    int device_row_count = state->p / numberOfGPUs;
+    int device_row_count = ((int) state->p) / numberOfGPUs;
     int max_additional_row_index = state->p % numberOfGPUs;
     #pragma omp parallel for
     for (int i = 0; i < numberOfGPUs; i++)
@@ -28,49 +25,49 @@ void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numb
     }
   }
 
-  auto cpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
-  auto gpuQueue = std::unique_ptr<SplitTaskQueue>(new SplitTaskQueue());
+  std::vector<SplitTask> CPURows;
+  std::vector<SplitTask> GPURows;
   for (int row = 0; row < state->p; row++)
   {
-    if (row % 3 == 0)
+    if (row % 2 == 0)
     {
-      cpuQueue->enqueue(SplitTask{row, 1});
+      CPURows.push_back(SplitTask{row, 1});
     }
-    else if (row % 3 == 1)
+    else
     {
-      gpuQueue->enqueue(SplitTask{row, 2});
+      GPURows.push_back(SplitTask{row, 1});
     }
   }
-  auto resCPUFuture = std::async(CPU::executeLevel, level, state, cpuQueue.get());
-  auto resGPUFuture = std::async(GPU::executeLevel, level, state, gpuQueue.get(), maxEdgeCount, numberOfGPUs);
+  auto resCPUFuture = std::async(CPU::executeLevel, level, state, CPURows);
+  auto resGPUFuture = std::async(GPU::executeLevel, level, state, GPURows, maxEdgeCount, numberOfGPUs);
 
   TestResult resCPU = resCPUFuture.get();
   TestResult resGPU = resGPUFuture.get();
 
-  if (VERBOSE)
+  if (verbose)
   {
     std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
-              << std::max(resCPU.duration, resGPU.duration) << " µs." << std::endl;
-    std::cout << "\t CPU time: " << resCPU.duration << " µs GPU time: "
-              << resGPU.duration << " µs." << std::endl;
+              << std::max(resCPU.duration, resGPU.duration) << " \u03BCs." << std::endl;
+    std::cout << "\t CPU time: " << resCPU.duration << " \u03BCs GPU time: "
+              << resGPU.duration << " \u03BCs." << std::endl;
   }
 }
 
-void calcSkeleton(MMState *state, int numberOfGPUs, int maxMem,
+void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int maxMem,
                   int startLevel)
 {
-  int maxEdgeCount = state->p * (state->p - 1L) / 2;
-  if (VERBOSE)
+  int maxEdgeCount = (int) (state->p * (state->p - 1L) / 2);
+  if (verbose)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
-    calcLevel(state, maxMem, maxEdgeCount, lvl, numberOfGPUs);
+    calcLevel(state, maxMem, maxEdgeCount, lvl, numberOfGPUs, verbose);
   }
 
-  if (VERBOSE)
+  if (verbose)
   {
     printSepsets(state);
   }

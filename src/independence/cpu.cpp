@@ -1,14 +1,9 @@
-#include "../util/indep_util.hpp"
-#include "../util/state.cuh"
+#include "cpu.hpp"
 #include "armadillo"
-#include "boost/dynamic_bitset.hpp"
 #include "boost/math/distributions/normal.hpp"
-#include "boost/math/special_functions/fpclassify.hpp"
 #include "boost/math/special_functions/log1p.hpp"
-#include <unordered_map>
 #include <iostream>
 #include <chrono>
-#include "omp.h"
 
 namespace CPU
 {
@@ -41,10 +36,10 @@ namespace CPU
 
   void testRowL0Triangluar(MMState *state, int row_node, int col_node)
   {
-    int idx = state->p * row_node + col_node;
+    auto idx = state->p * row_node + col_node;
     if (col_node < row_node && state->adj[idx])
     {
-      int inv_idx = state->p * col_node + row_node;
+      auto inv_idx = state->p * col_node + row_node;
       double pVal = calcPValue(state->cor[idx], state->observations);
       state->pMax[inv_idx] = pVal;
       if (state->pMax[inv_idx] >= state->alpha)
@@ -61,7 +56,7 @@ namespace CPU
 
   void testRowL1Triangluar(MMState *state, int row_node, int col_node)
   {
-    int p = state->p;
+    int p = (int) state->p;
     int idx = p * row_node + col_node;
     int inv_idx = col_node * p + row_node;
     if (col_node < row_node && state->adj_compact[idx] != 0)
@@ -94,29 +89,30 @@ namespace CPU
     }
   }
 
-  void testRowLNTriangluar(MMState *state, int row_node, int col_node, std::shared_ptr<arma::mat> correlation, int level)
+  template <int lvlSize, int kLvlSizeSmall>
+  void testRowLNTriangluar(MMState *state, int row_node, int col_node)
   {
     int row_count = state->adj_compact[row_node * state->p + state->p - 1];
-    int levelSize = level + 2;
+
     if (col_node < state->p &&
         row_node < state->p &&
         row_count > col_node && // col_node not available
-        row_count >= level)
+        row_count >= kLvlSizeSmall)
     {
 
       auto actual_col_node = state->adj_compact[row_node * state->p + col_node]; // get actual id
-      size_t row_neighbours = row_count - 1;                                     // get number of neighbors && exclude col_node
-      size_t row_test_count = binomialCoeff(row_neighbours, level);
-      int sepset_nodes[level];
+      int row_neighbours = row_count - 1;                                     // get number of neighbors && exclude col_node
+      size_t row_test_count = binomialCoeff(row_neighbours, kLvlSizeSmall);
+      int sepset_nodes[kLvlSizeSmall];
 
       for (size_t test_index = 0; test_index < row_test_count;
            test_index++)
       {
-        ithCombination(sepset_nodes, test_index, level,
+        ithCombination(sepset_nodes, test_index, kLvlSizeSmall,
                        row_neighbours);
 
         // Fill sepset_nodes array with actual ids
-        for (int ind = 0; ind < level; ++ind)
+        for (int ind = 0; ind < kLvlSizeSmall; ++ind)
         {
           if (sepset_nodes[ind] - 1 >= col_node)
           {
@@ -129,14 +125,11 @@ namespace CPU
                 state->adj_compact[row_node * state->p + sepset_nodes[ind] - 1];
           }
         }
-        arma::dmat Submat(levelSize, levelSize, arma::fill::eye);
-        //for (int i = 0; i < levelSize; ++i) {
-        // set diagonal
-        //  Submat(i,i) = 1;
-        //}
+        arma::dmat Submat(lvlSize, lvlSize, arma::fill::eye);
+
         Submat(0, 1) = Submat(1, 0) = state->cor[row_node * state->p + actual_col_node];
 
-        for (int j = 2; j < levelSize; ++j)
+        for (int j = 2; j < lvlSize; ++j)
         {
           // set correlations of X
           Submat(0, j) = Submat(j, 0) =
@@ -145,9 +138,9 @@ namespace CPU
           Submat(1, j) = Submat(j, 1) =
               state->cor[actual_col_node * state->p + sepset_nodes[j - 2]];
         }
-        for (int i = 2; i < levelSize; ++i)
+        for (int i = 2; i < lvlSize; ++i)
         {
-          for (int j = i + 1; j < levelSize; ++j)
+          for (int j = i + 1; j < lvlSize; ++j)
           {
             Submat(i, j) = Submat(j, i) =
                 state->cor[sepset_nodes[i - 2] * state->p + sepset_nodes[j - 2]];
@@ -161,10 +154,10 @@ namespace CPU
         {
           if (row_node < actual_col_node)
           {
-            state->adj[state->p * row_node + actual_col_node] = 0.f;
-            state->adj[state->p * actual_col_node + row_node] = 0.f;
+            state->adj[state->p * row_node + actual_col_node] = 0;
+            state->adj[state->p * actual_col_node + row_node] = 0;
             state->pMax[state->p * row_node + actual_col_node] = pVal;
-            for (int j = 0; j < level; ++j)
+            for (int j = 0; j < kLvlSizeSmall; ++j)
             {
               state->sepSets[row_node * state->p * state->maxCondSize +
                              actual_col_node * state->maxCondSize + j] = sepset_nodes[j];
@@ -173,10 +166,10 @@ namespace CPU
           else
           {
 
-            state->adj[state->p * row_node + actual_col_node] = 0.f;
-            state->adj[state->p * actual_col_node + row_node] = 0.f;
+            state->adj[state->p * row_node + actual_col_node] = 0;
+            state->adj[state->p * actual_col_node + row_node] = 0;
             state->pMax[state->p * actual_col_node + row_node] = pVal;
-            for (int j = 0; j < level; ++j)
+            for (int j = 0; j < kLvlSizeSmall; ++j)
             {
               state->sepSets[actual_col_node * state->p * state->maxCondSize +
                              row_node * state->maxCondSize + j] = sepset_nodes[j];
@@ -187,36 +180,33 @@ namespace CPU
     }
   }
 
-  TestResult executeLevel(int level, MMState *state, SplitTaskQueue *cpuQueue)
+  TestResult executeLevel(int level, MMState *state, std::vector<SplitTask> &CPURows)
   {
     auto start = std::chrono::system_clock::now();
 
-    auto row_count = cpuQueue->size_approx();
-
-    auto corrMat = std::make_shared<arma::mat>(state->cor, state->p, state->p, false, true);
 #pragma omp parallel for
-    for (int _j = 0; _j < row_count; _j++)
+    for (int j = 0; j < CPURows.size(); j++)
     {
-      SplitTask curTask;
-      if (cpuQueue->try_dequeue(curTask))
+      SplitTask curTask = CPURows[j];
+      auto max_row = curTask.row + curTask.rowCount;
+      for (int row_node = curTask.row; row_node < max_row; row_node++)
       {
-        auto max_row = curTask.row + curTask.rowCount;
-        for (int row_node = curTask.row; row_node < max_row; row_node++)
+        for (int col_node = 0; col_node < state->p; col_node++)
         {
-          for (int col_node = 0; col_node < state->p; col_node++)
+          switch (level)
           {
-            switch (level)
-            {
-            case 0:
-              testRowL0Triangluar(state, row_node, col_node);
-              break;
-            case 1:
-              testRowL1Triangluar(state, row_node, col_node);
-              break;
-            default:
-              testRowLNTriangluar(state, row_node, col_node, corrMat, level);
-              break;
-            }
+          case 0:
+            testRowL0Triangluar(state, row_node, col_node);
+            break;
+          case 1:
+            testRowL1Triangluar(state, row_node, col_node);
+            break;
+          case 2:
+            testRowLNTriangluar<4,2>(state, row_node, col_node);
+            break;
+          case 3:
+            testRowLNTriangluar<5,3>(state, row_node, col_node);
+            break;
           }
         }
       }

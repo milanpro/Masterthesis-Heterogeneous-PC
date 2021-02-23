@@ -8,10 +8,7 @@ namespace po = boost::program_options;
 #include <iostream>
 #include <iterator>
 #include <omp.h>
-#include <cblas-openblas.h>
 using namespace std;
-
-bool VERBOSE;
 
 int main(int argc, char const *argv[])
 {
@@ -19,7 +16,7 @@ int main(int argc, char const *argv[])
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce a help message")
-        ("input-file,i", po::value<string>()->default_value("../../data/cooling_house.csv"), "input file")
+        ("input-file,i", po::value<string>()->default_value("../../../data/cooling_house.csv"), "input file")
         ("alpha,a", po::value<double>()->default_value(0.05), "alpha value")
         ("observations,o", po::value<int>(), "observation count")
         ("max-level,m", po::value<int>()->default_value(4), "maximum level")
@@ -55,16 +52,12 @@ int main(int argc, char const *argv[])
         omp_set_num_threads(numberOfThreads);
     }
 
-    // prevent multithreading bugs (https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded)
-    openblas_set_num_threads(1);
-
 #ifdef NDEBUG
     bool verbose = vm.count("verbose") != 0;
 #else
     bool verbose = true;
 #endif
 
-    VERBOSE = verbose;
     if (verbose)
     {
         cout << "Reading file: " << inputFile << endl;
@@ -86,7 +79,7 @@ int main(int argc, char const *argv[])
     }
 
     if (omp_get_max_threads() > array_data.get()->n_cols) {
-        omp_set_num_threads(array_data.get()->n_cols);
+        omp_set_num_threads((int) array_data.get()->n_cols);
     }
 
     if (vm.count("corr"))
@@ -99,13 +92,13 @@ int main(int argc, char const *argv[])
 
         MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, numberOfGPUs);
+        calcSkeleton(&state, numberOfGPUs, verbose);
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, array_data.get()->n_rows, alpha, maxLevel);
-        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor);
-        calcSkeleton(&state, numberOfGPUs);
+        MMState state = MMState(array_data.get()->n_cols, (int) array_data.get()->n_rows, alpha, maxLevel);
+        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, verbose);
+        calcSkeleton(&state, numberOfGPUs, verbose);
     }
 
     return 0;

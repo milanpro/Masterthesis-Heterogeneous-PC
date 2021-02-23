@@ -1,5 +1,4 @@
 #pragma once
-#include "./concurrentqueue.h"
 #define NUMTHREADS 64
 
 struct SplitTask
@@ -10,8 +9,6 @@ struct SplitTask
 
 struct TestResult
 {
-  uint64_t duration;
-  uint64_t tests;
+  unsigned long long duration;
+  unsigned long long tests;
 };
-
-using SplitTaskQueue = moodycamel::ConcurrentQueue<SplitTask>;

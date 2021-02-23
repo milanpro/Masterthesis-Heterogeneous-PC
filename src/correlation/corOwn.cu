@@ -7,9 +7,9 @@
 
 #define PERTHREAD 8
 
-void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors) {
-  if (VERBOSE)
-    printf("Cor started with N=%lu, dim=%i\n", n, dim);
+void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors, bool verbose) {
+  if (verbose)
+    printf("Cor started with N=%llu, dim=%i\n", n, dim);
   size_t dbytes = sizeof(double);
   double *d_mat, *d_means, *d_stddevs, *d_cors_copy;
   dim3 block(NUMTHREADS), grid(n, n), gridX(n);
@@ -24,18 +24,18 @@ void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors) {
 
   gpuMeans<<<gridX, block>>>(d_mat, n, dim, d_means);
   cudaDeviceSynchronize();
-  if (VERBOSE)
+  if (verbose)
     printf("Means successful \n");
 
   gpuSD<<<gridX, block>>>(d_mat, n, dim, d_means, d_stddevs);
   cudaDeviceSynchronize();
-  if (VERBOSE)
+  if (verbose)
     printf("SD successful \n");
 
   gpuPMCC<<<grid, block>>>(d_mat, n, dim, d_means, d_stddevs, d_cors_copy);
   cudaDeviceSynchronize();
   memcpy(cors, d_cors_copy, n * n * dbytes);
-  if (VERBOSE)
+  if (verbose)
     printf("PMCC successful \n");
 
   // Free allocated space

@@ -1,6 +1,7 @@
 #include "../util/indep_util.hpp"
 #include "../util/state.cuh"
+#include <vector>
 
 namespace GPU {
-  TestResult executeLevel(int level, MMState *state, SplitTaskQueue *gpuQueue, int maxEdgeCount, int numberOfGPUs);
+  TestResult executeLevel(int level, MMState *state, std::vector<SplitTask> &GPURows, int maxEdgeCount, int numberOfGPUs);
 }
