@@ -10,5 +10,5 @@ struct SplitTask
 struct TestResult
 {
   unsigned long long duration;
-  unsigned long long tests;
+  int tests;
 };

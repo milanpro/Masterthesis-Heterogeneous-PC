@@ -1,13 +1,11 @@
-#include "cpu.hpp"
+#include "cpuExecutor.hpp"
 #include "armadillo"
 #include "boost/math/distributions/normal.hpp"
 #include "boost/math/special_functions/log1p.hpp"
-#include <iostream>
 #include <chrono>
 
 namespace CPU
 {
-
 #define CUT_THR 0.9999999
   double calcPValue(double r_in, int sampleSize)
   {
@@ -56,7 +54,7 @@ namespace CPU
 
   void testRowL1Triangluar(MMState *state, int row_node, int col_node)
   {
-    int p = (int) state->p;
+    int p = (int)state->p;
     int idx = p * row_node + col_node;
     int inv_idx = col_node * p + row_node;
     if (col_node < row_node && state->adj_compact[idx] != 0)
@@ -101,7 +99,7 @@ namespace CPU
     {
 
       auto actual_col_node = state->adj_compact[row_node * state->p + col_node]; // get actual id
-      int row_neighbours = row_count - 1;                                     // get number of neighbors && exclude col_node
+      int row_neighbours = row_count - 1;                                        // get number of neighbors && exclude col_node
       size_t row_test_count = binomialCoeff(row_neighbours, kLvlSizeSmall);
       int sepset_nodes[kLvlSizeSmall];
 
@@ -179,41 +177,40 @@ namespace CPU
       }
     }
   }
+}
 
-  TestResult executeLevel(int level, MMState *state, std::vector<SplitTask> &CPURows)
-  {
-    auto start = std::chrono::system_clock::now();
-
+TestResult CPUExecutor::executeLevel(int level)
+{
+  auto start = std::chrono::system_clock::now();
 #pragma omp parallel for
-    for (int j = 0; j < CPURows.size(); j++)
+  for (int j = 0; j < tasks.size(); j++)
+  {
+    SplitTask curTask = tasks[j];
+    auto max_row = curTask.row + curTask.rowCount;
+    for (int row_node = curTask.row; row_node < max_row; row_node++)
     {
-      SplitTask curTask = CPURows[j];
-      auto max_row = curTask.row + curTask.rowCount;
-      for (int row_node = curTask.row; row_node < max_row; row_node++)
+      for (int col_node = 0; col_node < state->p; col_node++)
       {
-        for (int col_node = 0; col_node < state->p; col_node++)
+        switch (level)
         {
-          switch (level)
-          {
-          case 0:
-            testRowL0Triangluar(state, row_node, col_node);
-            break;
-          case 1:
-            testRowL1Triangluar(state, row_node, col_node);
-            break;
-          case 2:
-            testRowLNTriangluar<4,2>(state, row_node, col_node);
-            break;
-          case 3:
-            testRowLNTriangluar<5,3>(state, row_node, col_node);
-            break;
-          }
+        case 0:
+          CPU::testRowL0Triangluar(state, row_node, col_node);
+          break;
+        case 1:
+          CPU::testRowL1Triangluar(state, row_node, col_node);
+          break;
+        case 2:
+          CPU::testRowLNTriangluar<4, 2>(state, row_node, col_node);
+          break;
+        case 3:
+          CPU::testRowLNTriangluar<5, 3>(state, row_node, col_node);
+          break;
         }
       }
     }
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                        std::chrono::system_clock::now() - start)
-                        .count();
-    return {static_cast<uint64_t>(duration), 0};
-  };
-} // namespace CPU
+  }
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::system_clock::now() - start)
+                      .count();
+  return TestResult{static_cast<uint64_t>(duration), 0};
+}

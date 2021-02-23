@@ -10,19 +10,25 @@ namespace po = boost::program_options;
 #include <omp.h>
 using namespace std;
 
+#ifdef __linux__ 
+  const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
+#elif _WIN32
+    const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
+#endif
+
 int main(int argc, char const *argv[])
 {
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce a help message")
-        ("input-file,i", po::value<string>()->default_value("../../../data/cooling_house.csv"), "input file")
+        ("input-file,i", po::value<string>()->default_value(DEFAULT_INPUT_FILE), "input file")
         ("alpha,a", po::value<double>()->default_value(0.05), "alpha value")
         ("observations,o", po::value<int>(), "observation count")
         ("max-level,m", po::value<int>()->default_value(4), "maximum level")
         ("corr", "input file is a correlation matrix")
         ("gpu-count,g", po::value<int>()->default_value(1), "number of gpus used")
-        ("thread-count,t", po::value<int>()->default_value(65), "number of threads used by openMP")
+        ("thread-count,t", "number of threads used by openMP")
         ("verbose,v", "verbose output");
 
     po::variables_map vm;

@@ -1,8 +1,8 @@
 #include "../util/cuda_util.cuh"
 #include "../util/matrix_print.cuh"
 #include "../util/constants.hpp"
-#include "cpu.hpp"
-#include "gpu.cuh"
+#include "../executor/gpuExecutor.cuh"
+#include "../executor/cpuExecutor.hpp"
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
@@ -10,36 +10,38 @@
 #include <future>
 #include <vector>
 
-void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numberOfGPUs, bool verbose)
+void calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool verbose, CPUExecutor *cpuExec, GPUExecutor *gpuExec)
 {
   if (level >= 2)
   {
-    int device_row_count = ((int) state->p) / numberOfGPUs;
+    int device_row_count = ((int)state->p) / numberOfGPUs;
     int max_additional_row_index = state->p % numberOfGPUs;
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < numberOfGPUs; i++)
     {
       int actual_device_row_count =
-        device_row_count + (i < max_additional_row_index);
+          device_row_count + (i < max_additional_row_index);
       callCompact(state, i, numberOfGPUs, actual_device_row_count);
     }
   }
 
-  std::vector<SplitTask> CPURows;
-  std::vector<SplitTask> GPURows;
   for (int row = 0; row < state->p; row++)
   {
     if (row % 2 == 0)
     {
-      CPURows.push_back(SplitTask{row, 1});
+      cpuExec->enqueueSplitTask(SplitTask{row, 1});
     }
     else
     {
-      GPURows.push_back(SplitTask{row, 1});
+      gpuExec->enqueueSplitTask(SplitTask{row, 1});
     }
   }
-  auto resCPUFuture = std::async(CPU::executeLevel, level, state, CPURows);
-  auto resGPUFuture = std::async(GPU::executeLevel, level, state, GPURows, maxEdgeCount, numberOfGPUs);
+  auto resCPUFuture = std::async([cpuExec, level] {
+    return cpuExec->executeLevel(level);
+  });
+  auto resGPUFuture = std::async([gpuExec, level] {
+    return gpuExec->executeLevel(level);
+  });
 
   TestResult resCPU = resCPUFuture.get();
   TestResult resGPU = resGPUFuture.get();
@@ -56,15 +58,17 @@ void calcLevel(MMState *state, int maxMem, int maxEdgeCount, int level, int numb
 void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int maxMem,
                   int startLevel)
 {
-  int maxEdgeCount = (int) (state->p * (state->p - 1L) / 2);
+  int maxEdgeCount = (int)(state->p * (state->p - 1L) / 2);
   if (verbose)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
+  auto gpuExec = GPUExecutor(state, maxEdgeCount, numberOfGPUs);
+  auto cpuExec = CPUExecutor(state);
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
-    calcLevel(state, maxMem, maxEdgeCount, lvl, numberOfGPUs, verbose);
+    calcLevel(state, maxMem, numberOfGPUs, lvl, verbose, &cpuExec, &gpuExec);
   }
 
   if (verbose)

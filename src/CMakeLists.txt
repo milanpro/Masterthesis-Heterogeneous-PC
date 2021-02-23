@@ -14,12 +14,13 @@ set(SOURCE_FILES
     correlation/corHelper.cu
     correlation/corOwn.cu
     correlation/corOwn.cuh
+    executor/executor.hpp
+    executor/cpuExecutor.hpp
+    executor/cpuExecutor.cpp
+    executor/gpuExecutor.cuh
+    executor/gpuExecutor.cu
     independence/skeleton.cpp
     independence/skeleton.hpp
-    independence/cpu.cpp
-    independence/cpu.hpp
-    independence/gpu.cu
-    independence/gpu.cuh
     independence/compact.cu
     independence/compact.cuh
     util/constants.hpp
