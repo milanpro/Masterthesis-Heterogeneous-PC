@@ -43,24 +43,15 @@ set_property(TARGET heterogpc
              PROPERTY CUDA_ARCHITECTURES 70)
 
 find_package(OpenMP REQUIRED)
-find_package(GSL REQUIRED)
 find_package(Armadillo REQUIRED)
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
 find_package(Boost COMPONENTS program_options REQUIRED)
 
-include_directories(${LAPACK_INCLUDE_DIR})
-include_directories(${BLAS_INCLUDE_DIR})
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(${BOOST_INCLUDE_DIRS})
 
 target_link_libraries(heterogpc
-    GSL::gsl
-    GSL::gslcblas
     ${ARMADILLO_LIBRARIES}
     ${Boost_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${BLAS_LIBRARIES}
     OpenMP::OpenMP_CXX
 )
 
@@ -69,9 +60,9 @@ IF (OPENMP_FOUND)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}") 
 ENDIF()  
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
     SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+ENDIF()
 
 if(APPLE)
   # We need to add the path to the driver (libcuda.dylib) as an rpath, 

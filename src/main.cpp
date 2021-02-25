@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
         ("max-level,m", po::value<int>()->default_value(4), "maximum level")
         ("corr", "input file is a correlation matrix")
         ("gpu-count,g", po::value<int>()->default_value(1), "number of gpus used")
-        ("thread-count,t", "number of threads used by openMP")
+        ("thread-count,t", po::value<int>(), "number of threads used by openMP")
         ("verbose,v", "verbose output");
 
     po::variables_map vm;
@@ -66,6 +66,7 @@ int main(int argc, char const *argv[])
 
     if (verbose)
     {
+        cout << "Using " << omp_get_max_threads() << " OpenMP threads in pool" << endl;
         cout << "Reading file: " << inputFile << endl;
     }
 

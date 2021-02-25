@@ -219,7 +219,7 @@ TestResult GPUExecutor::executeLevel(int level)
 
   auto rows = tasks.size();
   int rowsPerGPU = (int)std::ceil(rows / numberOfGPUs);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(numberOfGPUs)
   for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++)
   {
     int maxRow = (deviceId + 1) * rowsPerGPU;

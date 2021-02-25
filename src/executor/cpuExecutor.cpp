@@ -182,7 +182,7 @@ namespace CPU
 TestResult CPUExecutor::executeLevel(int level)
 {
   auto start = std::chrono::system_clock::now();
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
   for (int j = 0; j < tasks.size(); j++)
   {
     SplitTask curTask = tasks[j];
