@@ -23,7 +23,6 @@ set(SOURCE_FILES
     independence/skeleton.hpp
     independence/compact.cu
     independence/compact.cuh
-    util/constants.hpp
     util/indep_util.hpp
     util/cuda_util.cu
     util/cuda_util.cuh

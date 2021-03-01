@@ -1,5 +1,4 @@
 #pragma once
-#define NUMTHREADS 64
 
 struct SplitTask
 {

@@ -44,43 +44,52 @@ namespace CPU
       {
         state->adj[idx] = 0;
         state->adj[inv_idx] = 0;
-        state->adj_compact[idx] = 0;
-        state->adj_compact[inv_idx] = 0;
         state->sepSets[(col_node * state->maxCondSize * state->p) +
                        (row_node * state->maxCondSize)] = -2;
       }
     }
   }
 
-  void testRowL1Triangluar(MMState *state, int row_node, int col_node)
+  void testRowL1(MMState *state, int row_node, int col_node)
   {
     int p = (int)state->p;
-    int idx = p * row_node + col_node;
-    int inv_idx = col_node * p + row_node;
-    if (col_node < row_node && state->adj_compact[idx] != 0)
+    int row_count = state->adj_compact[row_node * state->p + state->p - 1];
+    if (col_node < p &&
+        row_node < p &&
+        row_count > col_node && // col_node not available
+        row_count >= 1)
     {
-      for (int next = 0; next < p; next++)
+      auto actual_col_node = state->adj_compact[row_node * state->p + col_node];
+      int subIndex;
+      for (int next = 0; next < row_count; next++)
       {
-        if (row_node != next && col_node != next)
+        if (next != col_node)
         {
-          if (state->adj_compact[row_node * p + next] != 0 || state->adj_compact[col_node * p + next] != 0)
+          subIndex = state->adj_compact[row_node * p + next];
+          double pVal = pValL1(
+              state->cor[row_node * p + actual_col_node],
+              state->cor[row_node * p + subIndex],
+              state->cor[actual_col_node * p + subIndex], state->observations);
+          // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
+          if (pVal >= state->alpha)
           {
-            double pVal = pValL1(
-                state->cor[idx],
-                state->cor[row_node * p + next],
-                state->cor[col_node * p + next], state->observations);
-            if (pVal > state->pMax[inv_idx])
+            state->adj[p * row_node + actual_col_node] = 0;
+            state->adj[p * actual_col_node + row_node] = 0;
+            if (row_node < actual_col_node)
             {
-              state->pMax[inv_idx] = pVal;
-              if (pVal >= state->alpha)
-              {
-                state->sepSets[col_node * p * state->maxCondSize +
-                               row_node * state->maxCondSize] = next;
-                state->adj[idx] =
-                    state->adj[inv_idx] = 0;
-                break;
-              }
+              state->pMax[p * row_node + actual_col_node] = pVal;
+              state->sepSets[row_node * p * state->maxCondSize +
+                             actual_col_node * state->maxCondSize] =
+                  state->adj_compact[row_node * p + subIndex];
             }
+            else
+            {
+              state->pMax[p * actual_col_node + row_node] = pVal;
+              state->sepSets[actual_col_node * p * state->maxCondSize +
+                             row_node * state->maxCondSize] =
+                  state->adj_compact[actual_col_node * p + subIndex];
+            }
+            break;
           }
         }
       }
@@ -88,7 +97,7 @@ namespace CPU
   }
 
   template <int lvlSize, int kLvlSizeSmall>
-  void testRowLNTriangluar(MMState *state, int row_node, int col_node)
+  void testRowLN(MMState *state, int row_node, int col_node)
   {
     int row_count = state->adj_compact[row_node * state->p + state->p - 1];
 
@@ -173,6 +182,7 @@ namespace CPU
                              row_node * state->maxCondSize + j] = sepset_nodes[j];
             }
           }
+          break;
         }
       }
     }
@@ -197,13 +207,13 @@ TestResult CPUExecutor::executeLevel(int level)
           CPU::testRowL0Triangluar(state, row_node, col_node);
           break;
         case 1:
-          CPU::testRowL1Triangluar(state, row_node, col_node);
+          CPU::testRowL1(state, row_node, col_node);
           break;
         case 2:
-          CPU::testRowLNTriangluar<4, 2>(state, row_node, col_node);
+          CPU::testRowLN<4, 2>(state, row_node, col_node);
           break;
         case 3:
-          CPU::testRowLNTriangluar<5, 3>(state, row_node, col_node);
+          CPU::testRowLN<5, 3>(state, row_node, col_node);
           break;
         }
       }

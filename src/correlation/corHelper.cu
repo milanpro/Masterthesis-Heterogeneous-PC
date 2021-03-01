@@ -1,4 +1,4 @@
-#include "../util/constants.hpp"
+#include "../util/cuda_util.cuh"
 #include "corHelper.cuh"
 #include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>

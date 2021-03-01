@@ -1,6 +1,5 @@
 #include "../util/cuda_util.cuh"
 #include "../util/matrix_print.cuh"
-#include "../util/constants.hpp"
 #include "../executor/gpuExecutor.cuh"
 #include "../executor/cpuExecutor.hpp"
 #include "skeleton.hpp"
@@ -12,7 +11,7 @@
 
 void calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool verbose, CPUExecutor *cpuExec, GPUExecutor *gpuExec)
 {
-  if (level >= 2)
+  if (level >= 1)
   {
     int device_row_count = ((int)state->p) / numberOfGPUs;
     int max_additional_row_index = state->p % numberOfGPUs;
