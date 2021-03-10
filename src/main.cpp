@@ -66,7 +66,7 @@ int main(int argc, char const *argv[])
 
     if (verbose)
     {
-        cout << "Using " << omp_get_max_threads() << " OpenMP threads in pool" << endl;
+        cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
         cout << "Reading file: " << inputFile << endl;
     }
 

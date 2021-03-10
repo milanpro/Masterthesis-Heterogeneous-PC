@@ -12,4 +12,8 @@ public:
   {
     tasks.push_back(task);
   }
+
+  void cleanupSplitTasks() {
+    tasks.clear();
+  }
 };

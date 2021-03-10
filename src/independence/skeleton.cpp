@@ -35,22 +35,23 @@ void calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool ver
       gpuExec->enqueueSplitTask(SplitTask{row, 1});
     }
   }
-  auto resCPUFuture = std::async([cpuExec, level] {
-    return cpuExec->executeLevel(level);
+
+  auto resCPUFuture = std::async([cpuExec, level, verbose] {
+    return cpuExec->executeLevel(level, verbose);
   });
-  auto resGPUFuture = std::async([gpuExec, level] {
-    return gpuExec->executeLevel(level);
+  auto resGPUFuture = std::async([gpuExec, level, verbose] {
+    return gpuExec->executeLevel(level, verbose);
   });
 
   TestResult resCPU = resCPUFuture.get();
   TestResult resGPU = resGPUFuture.get();
+  cpuExec->cleanupSplitTasks();
+  gpuExec->cleanupSplitTasks();
 
   if (verbose)
   {
     std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
               << std::max(resCPU.duration, resGPU.duration) << " \u03BCs." << std::endl;
-    std::cout << "\t CPU time: " << resCPU.duration << " \u03BCs GPU time: "
-              << resGPU.duration << " \u03BCs." << std::endl;
   }
 }
 
@@ -65,6 +66,7 @@ void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int maxMem,
 
   auto gpuExec = GPUExecutor(state, maxEdgeCount, numberOfGPUs);
   auto cpuExec = CPUExecutor(state);
+
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
     calcLevel(state, maxMem, numberOfGPUs, lvl, verbose, &cpuExec, &gpuExec);

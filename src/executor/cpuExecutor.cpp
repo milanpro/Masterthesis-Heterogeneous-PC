@@ -3,6 +3,7 @@
 #include "boost/math/distributions/normal.hpp"
 #include "boost/math/special_functions/log1p.hpp"
 #include <chrono>
+#include <iostream>
 
 namespace CPU
 {
@@ -189,10 +190,11 @@ namespace CPU
   }
 }
 
-TestResult CPUExecutor::executeLevel(int level)
+TestResult CPUExecutor::executeLevel(int level, bool verbose)
 {
   auto start = std::chrono::system_clock::now();
-#pragma omp parallel for schedule(dynamic)
+
+#pragma omp parallel for shared(state, level) default(none) schedule(guided)
   for (int j = 0; j < tasks.size(); j++)
   {
     SplitTask curTask = tasks[j];
@@ -219,8 +221,12 @@ TestResult CPUExecutor::executeLevel(int level)
       }
     }
   }
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::system_clock::now() - start)
-                      .count();
-  return TestResult{static_cast<uint64_t>(duration), 0};
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                            std::chrono::system_clock::now() - start)
+                                            .count());
+  if (verbose)
+  {
+    std::cout << "\tCPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+  }
+  return TestResult{duration, 0};
 }

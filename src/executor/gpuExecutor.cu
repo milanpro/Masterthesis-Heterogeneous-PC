@@ -2,6 +2,7 @@
 #include "../util/cuda_util.cuh"
 #include <cmath>
 #include <chrono>
+#include <iostream>
 
 namespace GPU
 {
@@ -221,7 +222,7 @@ namespace GPU
     }
   }
 }
-TestResult GPUExecutor::executeLevel(int level)
+TestResult GPUExecutor::executeLevel(int level, bool verbose)
 {
   auto start = std::chrono::system_clock::now();
   int numthreads = NUMTHREADS;
@@ -236,14 +237,14 @@ TestResult GPUExecutor::executeLevel(int level)
     block = dim3(numthreads);
   }
 
-  auto rows = tasks.size();
-  int rowsPerGPU = (int)std::ceil(rows / numberOfGPUs);
+  auto taskCount = tasks.size();
+  int tasksPerGPU = (int)std::ceil(taskCount / numberOfGPUs);
 #pragma omp parallel for num_threads(numberOfGPUs)
   for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++)
   {
-    int maxRow = (deviceId + 1) * rowsPerGPU;
+    int maxTask = (deviceId + 1) * tasksPerGPU;
     checkCudaErrors(cudaSetDevice(deviceId));
-    for (int i = deviceId * rowsPerGPU; i < maxRow && i < rows; i++)
+    for (int i = deviceId * tasksPerGPU; i < maxTask && i < taskCount; i++)
     {
       cudaStream_t stream;
       checkCudaErrors(cudaStreamCreate(&stream));
@@ -277,8 +278,12 @@ TestResult GPUExecutor::executeLevel(int level)
   std::string msg = "L " + std::to_string(level) + " Kernel execution failed";
   cudaDeviceSynchronize();
   checkLastCudaError(msg.c_str());
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::system_clock::now() - start)
-                      .count();
-  return TestResult{static_cast<uint64_t>(duration), (int)(state->p * (state->p - 1L)) / 2};
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                            std::chrono::system_clock::now() - start)
+                                            .count());
+  if (verbose)
+  {
+    std::cout << "\tGPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+  }
+  return TestResult{duration, (int)(state->p * (state->p - 1L)) / 2};
 }
