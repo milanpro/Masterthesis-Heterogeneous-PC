@@ -10,10 +10,10 @@ namespace po = boost::program_options;
 #include <omp.h>
 using namespace std;
 
-#ifdef __linux__ 
-  const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
+#ifdef __linux__
+const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
 #elif _WIN32
-    const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
+const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
 #endif
 
 int main(int argc, char const *argv[])
@@ -53,7 +53,8 @@ int main(int argc, char const *argv[])
     int maxLevel = vm["max-level"].as<int>();
     int numberOfGPUs = vm["gpu-count"].as<int>();
 
-    if (vm.count("thread-count")) {
+    if (vm.count("thread-count"))
+    {
         int numberOfThreads = vm["thread-count"].as<int>();
         omp_set_num_threads(numberOfThreads);
     }
@@ -85,10 +86,6 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    if (omp_get_max_threads() > array_data.get()->n_cols) {
-        omp_set_num_threads((int) array_data.get()->n_cols);
-    }
-
     if (vm.count("corr"))
     {
         if (!vm.count("observations"))
@@ -103,7 +100,7 @@ int main(int argc, char const *argv[])
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, (int) array_data.get()->n_rows, alpha, maxLevel);
+        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, verbose);
         calcSkeleton(&state, numberOfGPUs, verbose);
     }

@@ -188,13 +188,36 @@ namespace CPU
       }
     }
   }
+
+  void testEdge(int level, MMState *state, int row_node, int col_node)
+  {
+    switch (level)
+    {
+    case 0:
+      testRowL0Triangluar(state, row_node, col_node);
+      break;
+    case 1:
+      testRowL1(state, row_node, col_node);
+      break;
+    case 2:
+      testRowLN<4, 2>(state, row_node, col_node);
+      break;
+    case 3:
+      testRowLN<5, 3>(state, row_node, col_node);
+      break;
+    }
+  }
 }
 
 TestResult CPUExecutor::executeLevel(int level, bool verbose)
 {
+  if (tasks.size() == 0)
+  {
+    return {0, 0};
+  }
   auto start = std::chrono::system_clock::now();
 
-#pragma omp parallel for shared(state, level) default(none) schedule(guided)
+#pragma omp parallel for shared(state, level) default(none)
   for (int j = 0; j < tasks.size(); j++)
   {
     SplitTask curTask = tasks[j];
@@ -203,24 +226,11 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
     {
       for (int col_node = 0; col_node < state->p; col_node++)
       {
-        switch (level)
-        {
-        case 0:
-          CPU::testRowL0Triangluar(state, row_node, col_node);
-          break;
-        case 1:
-          CPU::testRowL1(state, row_node, col_node);
-          break;
-        case 2:
-          CPU::testRowLN<4, 2>(state, row_node, col_node);
-          break;
-        case 3:
-          CPU::testRowLN<5, 3>(state, row_node, col_node);
-          break;
-        }
+        CPU::testEdge(level, state, row_node, col_node);
       }
     }
   }
+
   auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());

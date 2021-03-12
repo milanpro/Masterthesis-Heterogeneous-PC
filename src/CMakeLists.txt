@@ -23,12 +23,11 @@ set(SOURCE_FILES
     independence/skeleton.hpp
     independence/compact.cu
     independence/compact.cuh
+    loadbalance/balancer.cpp
+    loadbalance/balancer.hpp
     util/indep_util.hpp
     util/cuda_util.cu
     util/cuda_util.cuh
-    util/matrix_print.cuh
-    util/mem_info.cuh
-    util/mem_info.cu
     util/state.cu
     util/state.cuh
 )
@@ -60,7 +59,7 @@ IF (OPENMP_FOUND)
 ENDIF()  
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
+SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
 ENDIF()
 
 if(APPLE)

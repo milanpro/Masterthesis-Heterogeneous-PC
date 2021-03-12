@@ -19,3 +19,12 @@ Can be found in: `/home/Christopher.Hagedorn/genData`
 #### Bugs
 https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded
 Prevent threading segfault : `export OPENBLAS_NUM_THREADS=1`
+
+
+#### Balancing ideas
+
+```
+      float row_size = (float)row_length / (float)(variableCount - 1);
+      float cpu_row_count = cpuExecutor->tasks.size();
+      if (row_size < 0.3f || (row_size < 0.4f && (variableCount - row) <= ompThreadCount - cpu_row_count))
+```

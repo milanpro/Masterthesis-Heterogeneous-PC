@@ -42,6 +42,18 @@ inline void __checkLastCudaError(const char *errorMessage, const char *file,
   }
 }
 
+static int getDeviceSMCount(int deviceID) {
+  cudaDeviceProp deviceProperties;
+  checkCudaErrors(cudaGetDeviceProperties(&deviceProperties, deviceID));
+  return deviceProperties.multiProcessorCount;
+}
+
+static int getDeviceCount() {
+  int count;
+  checkCudaErrors(cudaGetDeviceCount(&count));
+  return count;
+}
+
 extern __device__ double PYTHAG(double a, double b);
 
 extern __host__ __device__ size_t binomialCoeff(int n, int k);

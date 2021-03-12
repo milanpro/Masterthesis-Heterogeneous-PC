@@ -224,6 +224,10 @@ namespace GPU
 }
 TestResult GPUExecutor::executeLevel(int level, bool verbose)
 {
+  if (tasks.size() == 0) {
+    return {0, 0};
+  }
+
   auto start = std::chrono::system_clock::now();
   int numthreads = NUMTHREADS;
   dim3 block, grid;
