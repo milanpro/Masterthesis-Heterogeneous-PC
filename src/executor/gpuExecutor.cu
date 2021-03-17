@@ -243,7 +243,7 @@ TestResult GPUExecutor::executeLevel(int level, bool verbose)
 
   auto taskCount = tasks.size();
   int tasksPerGPU = (int)std::ceil(taskCount / numberOfGPUs);
-#pragma omp parallel for num_threads(numberOfGPUs)
+#pragma omp parallel for num_threads(numberOfGPUs) if(numberOfGPUs > 1)
   for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++)
   {
     int maxTask = (deviceId + 1) * tasksPerGPU;

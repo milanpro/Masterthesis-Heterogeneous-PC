@@ -217,17 +217,12 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   }
   auto start = std::chrono::system_clock::now();
 
-#pragma omp parallel for shared(state, level) default(none)
-  for (int j = 0; j < tasks.size(); j++)
+#pragma omp parallel for shared(state, level, tasks) default(none) collapse(2)
+  for (auto i = 0; i < tasks.size(); i++)
   {
-    SplitTask curTask = tasks[j];
-    auto max_row = curTask.row + curTask.rowCount;
-    for (int row_node = curTask.row; row_node < max_row; row_node++)
+    for (int col_node = 0; col_node < state->p; col_node++)
     {
-      for (int col_node = 0; col_node < state->p; col_node++)
-      {
-        CPU::testEdge(level, state, row_node, col_node);
-      }
+      CPU::testEdge(level, state, tasks[i].row, col_node);
     }
   }
 

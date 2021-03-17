@@ -3,6 +3,8 @@
 #include <iostream>
 #include <future>
 #include <cmath>
+#include <algorithm>
+#include <vector>
 #include <omp.h>
 
 Balancer::Balancer(int numberOfGPUs, MMState *state, bool verbose) : numberOfGPUs(numberOfGPUs), state(state), verbose(verbose)
@@ -50,12 +52,31 @@ void Balancer::balance(int level)
 
     size_t max_row_test_count = level > 1 ? binomialCoeff(variableCount - 2, level) : variableCount - 2;
 
-    float max_test_iterations_gpu = std::ceil((float)max_row_test_count / (float)NUMTHREADS);
+    int max_test_iterations_gpu = std::ceil((float)max_row_test_count / (float)NUMTHREADS);
+
+    std::vector<int> test_iterations_gpu(variableCount, 0);
 
     for (int row = 0; row < variableCount; row++)
     {
       int row_length = state->adj_compact[row * variableCount + variableCount - 1];
-      if (row_length < level)
+      if (row_length >= level)
+      {
+        size_t row_test_count = level > 1 ? binomialCoeff(row_length - 1, level) : row_length - 1;
+        test_iterations_gpu[row] = std::ceil((float)row_test_count / (float)NUMTHREADS);
+      }
+    }
+
+    std::vector<int> sorted_test_iterations_gpu = test_iterations_gpu;
+
+    std::sort(sorted_test_iterations_gpu.begin(), sorted_test_iterations_gpu.end());
+
+    int iterations_threshhold = ompThreadCount * level < variableCount ? sorted_test_iterations_gpu[variableCount - (ompThreadCount * level)] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
+
+    //std::cout << "max_test_iterations_gpu: " << max_test_iterations_gpu << " iteration threshhold: " << iterations_threshhold << std::endl;
+
+    for (int row = 0; row < variableCount; row++)
+    {
+      if (test_iterations_gpu[row] == 0)
       {
         if (balancedRows + 1 == row)
         {
@@ -64,14 +85,18 @@ void Balancer::balance(int level)
         continue;
       }
 
-      size_t row_test_count = level > 1 ? binomialCoeff(row_length - 1, level) : row_length - 1;
-
-      float test_iterations_gpu = std::ceil((float)row_test_count / (float)NUMTHREADS);
-      float cpu_row_count = cpuExecutor->tasks.size();
-      std::cout << "max_test_iterations_gpu: " << max_test_iterations_gpu << " test_iterations_gpu: " << test_iterations_gpu << std::endl;
-
-      if (test_iterations_gpu == max_test_iterations_gpu || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
+      if (test_iterations_gpu[row] <= 10)
       {
+        continue;
+      }
+
+      float cpu_row_count = cpuExecutor->tasks.size();
+      // std::cout << "max_test_iterations_gpu: " << max_test_iterations_gpu << " test_iterations_gpu: " << test_iterations_gpu[row] << std::endl;
+
+      if (test_iterations_gpu[row] >= iterations_threshhold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
+      {
+        //std::cout << "Balanced on CPU with: " << test_iterations_gpu[row] << " iterations." << std::endl;
+
         if (balancedRows < row)
         {
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows});
