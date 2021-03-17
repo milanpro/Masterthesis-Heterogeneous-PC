@@ -27,16 +27,16 @@ unsigned long long calcLevel(MMState *state, int maxMem, int numberOfGPUs, int l
   return balancer->execute(level);
 }
 
-void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int maxMem,
+void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int heterogeneity, int maxMem,
                   int startLevel)
 {
-
+  
   if (verbose)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
-  auto balancer = Balancer(numberOfGPUs, state, verbose);
+  auto balancer = Balancer(numberOfGPUs, state, static_cast<Heterogeneity>(heterogeneity), verbose);
 
   unsigned long long duratonSum = 0;
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)

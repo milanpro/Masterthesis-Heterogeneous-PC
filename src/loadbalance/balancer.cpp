@@ -7,7 +7,7 @@
 #include <vector>
 #include <omp.h>
 
-Balancer::Balancer(int numberOfGPUs, MMState *state, bool verbose) : numberOfGPUs(numberOfGPUs), state(state), verbose(verbose)
+Balancer::Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity, bool verbose) : numberOfGPUs(numberOfGPUs), state(state), verbose(verbose), heterogeneity(heterogeneity)
 {
   int maxGPUCount = getDeviceCount();
 
@@ -37,9 +37,17 @@ void Balancer::balance(int level)
   int variableCount = state->p;
   int balancedRows = 0;
 
-  if (level == 0)
+  if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
   {
     gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
+  }
+  else if (
+      heterogeneity == Heterogeneity::CPUOnly)
+  {
+    for (int row = 0; row < variableCount; row++)
+    {
+      cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
+    }
   }
   else
   {
@@ -90,8 +98,7 @@ void Balancer::balance(int level)
         continue;
       }
 
-      float cpu_row_count = cpuExecutor->tasks.size();
-      // std::cout << "max_test_iterations_gpu: " << max_test_iterations_gpu << " test_iterations_gpu: " << test_iterations_gpu[row] << std::endl;
+      int cpu_row_count = cpuExecutor->tasks.size();
 
       if (test_iterations_gpu[row] >= iterations_threshhold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
       {

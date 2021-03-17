@@ -4,9 +4,16 @@
 #include <vector>
 #include <memory>
 
+enum Heterogeneity {
+  All = 0,
+  GPUOnly = 1,
+  CPUOnly = 2
+};
+
 struct Balancer
 {
   bool verbose;
+  Heterogeneity heterogeneity;
   int numberOfGPUs;
   MMState *state;
   std::vector<int> gpuToSMCountMap;
@@ -16,5 +23,5 @@ struct Balancer
 
   void balance(int level);
   unsigned long long execute(int level);
-  Balancer(int numberOfGPUs, MMState *state, bool verbose = false);
+  Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };
