@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <omp.h>
+#include <chrono>
 
 Balancer::Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity, bool verbose) : numberOfGPUs(numberOfGPUs), state(state), verbose(verbose), heterogeneity(heterogeneity)
 {
@@ -31,23 +32,29 @@ Balancer::Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity
 
 void Balancer::balance(int level)
 {
+  if (verbose)
+  {
+    std::cout << "Start balancing rows..." << std::endl;
+  }
+  auto start = std::chrono::system_clock::now();
+
   cpuExecutor->cleanupSplitTasks();
   gpuExecutor->cleanupSplitTasks();
 
   int variableCount = state->p;
   int balancedRows = 0;
 
-  if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
-  {
-    gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
-  }
-  else if (
+  if (
       heterogeneity == Heterogeneity::CPUOnly)
   {
     for (int row = 0; row < variableCount; row++)
     {
       cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
     }
+  }
+  else if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
+  {
+    gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
   }
   else
   {
@@ -78,9 +85,14 @@ void Balancer::balance(int level)
 
     std::sort(sorted_test_iterations_gpu.begin(), sorted_test_iterations_gpu.end());
 
-    int iterations_threshhold = ompThreadCount * level < variableCount ? sorted_test_iterations_gpu[variableCount - (ompThreadCount * level)] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
+    int max_iterations_threshold = ompThreadCount * level < variableCount ? sorted_test_iterations_gpu[variableCount - (ompThreadCount * level)] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
 
-    //std::cout << "max_test_iterations_gpu: " << max_test_iterations_gpu << " iteration threshhold: " << iterations_threshhold << std::endl;
+    int min_iterations_threshold = ompThreadCount * 0.1 < variableCount ? sorted_test_iterations_gpu[std::floor(ompThreadCount * 0.1)] : sorted_test_iterations_gpu[std::floor(variableCount * 0.1)];
+
+    if (verbose)
+    {
+      std::cout << "Maximum possible iterations: " << max_test_iterations_gpu << "\nMax GPU iteration threshold: " << max_iterations_threshold << "\nMin GPU iteration threshold: " << min_iterations_threshold << std::endl;
+    }
 
     for (int row = 0; row < variableCount; row++)
     {
@@ -93,17 +105,10 @@ void Balancer::balance(int level)
         continue;
       }
 
-      if (test_iterations_gpu[row] <= 10)
-      {
-        continue;
-      }
-
       int cpu_row_count = cpuExecutor->tasks.size();
 
-      if (test_iterations_gpu[row] >= iterations_threshhold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
+      if (test_iterations_gpu[row] >= max_iterations_threshold || test_iterations_gpu[row] <= min_iterations_threshold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
       {
-        //std::cout << "Balanced on CPU with: " << test_iterations_gpu[row] << " iterations." << std::endl;
-
         if (balancedRows < row)
         {
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows});
@@ -116,12 +121,23 @@ void Balancer::balance(int level)
     {
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, variableCount - balancedRows});
     }
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::system_clock::now() - start)
+                        .count();
+    if (verbose)
+    {
+      std::cout << "Balanced " << cpuExecutor->tasks.size() << " rows on the CPU and " << variableCount - cpuExecutor->tasks.size() << " rows on the GPU in " << duration << " \u03BCs." << std::endl;
+    }
   }
 }
 
 unsigned long long Balancer::execute(int level)
 {
   auto verbose = this->verbose;
+  if (verbose)
+  {
+    std::cout << "Start execution..." << std::endl;
+  }
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
   auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
@@ -138,7 +154,8 @@ unsigned long long Balancer::execute(int level)
   if (verbose)
   {
     std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
-              << duration << " \u03BCs." << std::endl;
+              << duration << " \u03BCs.\n"
+              << std::endl;
   }
   return duration;
 }

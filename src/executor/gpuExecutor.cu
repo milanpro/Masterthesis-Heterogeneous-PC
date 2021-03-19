@@ -51,7 +51,8 @@ namespace GPU
 
   __global__ void testRowL1(MMState state, int *rows, int start_row, int max_row_count)
   {
-    if (start_row + blockIdx.x >= max_row_count) {
+    if (start_row + blockIdx.x >= max_row_count)
+    {
       return;
     }
 
@@ -131,7 +132,8 @@ namespace GPU
   template <int lvlSize, int kLvlSizeSmall>
   __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_count)
   {
-    if (start_row + blockIdx.x >= max_row_count) {
+    if (start_row + blockIdx.x >= max_row_count)
+    {
       return;
     }
 
@@ -232,15 +234,18 @@ namespace GPU
 }
 TestResult GPUExecutor::executeLevel(int level, bool verbose)
 {
-  if (tasks.size() == 0) {
+  if (tasks.size() == 0)
+  {
     return {0, 0};
   }
 
   int *rows;
   int row_count = 0;
   checkCudaErrors(cudaMallocManaged(&rows, (uint64_t)sizeof(int) * state->p));
-  for (auto task : tasks) {
-    for (auto i = task.row; i < task.row + task.rowCount; i++) {
+  for (auto task : tasks)
+  {
+    for (auto i = task.row; i < task.row + task.rowCount; i++)
+    {
       rows[row_count] = i;
       row_count++;
     }
@@ -262,31 +267,31 @@ TestResult GPUExecutor::executeLevel(int level, bool verbose)
     grid = dim3(rowsPerGPU, (int)state->p);
   }
 
-#pragma omp parallel for num_threads(numberOfGPUs) if(numberOfGPUs > 1)
+#pragma omp parallel for num_threads(numberOfGPUs) if (numberOfGPUs > 1)
   for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++)
   {
     int start_row = deviceId * rowsPerGPU;
 
     checkCudaErrors(cudaSetDevice(deviceId));
-      switch (level)
-      {
-      case 0:
-        GPU::testRowL0<<<grid, block>>>(*state, start_row, rowsPerGPU);
-        break;
-      case 1:
-        GPU::testRowL1<<<grid, block, sizeof(double) * numthreads>>>(*state, rows, start_row, row_count);
-        break;
-      case 2:
-        GPU::testRowLN<4, 2><<<grid, block>>>(*state, rows, start_row, row_count);
-        break;
-      case 3:
-        GPU::testRowLN<5, 3><<<grid, block>>>(*state, rows, start_row, row_count);
-        break;
-      }
+    switch (level)
+    {
+    case 0:
+      GPU::testRowL0<<<grid, block>>>(*state, start_row, rowsPerGPU);
+      break;
+    case 1:
+      GPU::testRowL1<<<grid, block, sizeof(double) * numthreads>>>(*state, rows, start_row, row_count);
+      break;
+    case 2:
+      GPU::testRowLN<4, 2><<<grid, block>>>(*state, rows, start_row, row_count);
+      break;
+    case 3:
+      GPU::testRowLN<5, 3><<<grid, block>>>(*state, rows, start_row, row_count);
+      break;
+    }
+    std::string msg = "L " + std::to_string(level) + " Kernel execution failed";
+    cudaDeviceSynchronize();
+    checkLastCudaError(msg.c_str());
   }
-  std::string msg = "L " + std::to_string(level) + " Kernel execution failed";
-  cudaDeviceSynchronize();
-  checkLastCudaError(msg.c_str());
   auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
