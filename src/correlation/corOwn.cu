@@ -7,9 +7,11 @@
 
 #define PERTHREAD 8
 
-void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors, bool verbose) {
+void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors, int deviceId, bool verbose) {
   if (verbose)
     printf("Cor started with N=%llu, dim=%i\n", n, dim);
+
+  checkCudaErrors(cudaSetDevice(deviceId));
   size_t dbytes = sizeof(double);
   double *d_mat, *d_means, *d_stddevs, *d_cors_copy;
   dim3 block(NUMTHREADS), grid(n, n), gridX(n);

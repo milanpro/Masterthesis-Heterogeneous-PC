@@ -1,6 +1,7 @@
 #pragma once
 #include "./cuda_util.cuh"
 #include <stdint.h>
+#include<vector>
 
 /**
 Saves every important value/structure needed for the indepTests.
@@ -31,11 +32,11 @@ struct MMState {
   int *lock;
   int maxLevel;
 
-  MMState(uint64_t p, int observations, double alpha, int maxLevel);
+  MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId);
 
-  void adviceReadonlyCor(int numberOfGPUs);
+  void adviceReadonlyCor(std::vector<int> gpuList);
 
-  void memAdvise(int numberOfGPUs);
+  void memAdvise(std::vector<int> gpuList);
 
   void prefetchRows(int startRow, int rowCount, int deviceId);
 

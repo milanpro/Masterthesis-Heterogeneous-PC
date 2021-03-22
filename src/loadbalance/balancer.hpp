@@ -14,7 +14,7 @@ struct Balancer
 {
   bool verbose;
   Heterogeneity heterogeneity;
-  int numberOfGPUs;
+  std::vector<int> gpuList;
   MMState *state;
   std::vector<int> gpuToSMCountMap;
   int ompThreadCount;
@@ -23,5 +23,5 @@ struct Balancer
 
   void balance(int level);
   unsigned long long execute(int level);
-  Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
+  Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };

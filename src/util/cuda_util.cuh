@@ -12,11 +12,17 @@
 #define ITERATIONS 30
 #endif
 
+#ifndef COMPACTSHARED
+#define COMPACTSHARED 1024
+#endif
+
 #ifndef SIGN
 #define SIGN(a, b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #endif
 
+#ifndef NUMTHREADS
 #define NUMTHREADS 64
+#endif
 
 static void checkForCudaError(cudaError_t error, const char *file, int line) {
   if (error != cudaSuccess) {

@@ -6,6 +6,7 @@
 #include "independence/skeleton.hpp"
 namespace po = boost::program_options;
 #include <iostream>
+#include <vector>
 #include <iterator>
 #include <omp.h>
 using namespace std;
@@ -27,7 +28,7 @@ int main(int argc, char const *argv[])
         ("observations,o", po::value<int>(), "observation count")
         ("max-level,m", po::value<int>()->default_value(4), "maximum level")
         ("corr", "input file is a correlation matrix")
-        ("gpu-count,g", po::value<int>()->default_value(1), "number of gpus used")
+        ("gpus,g", po::value<vector<int>>()->multitoken(), "GPU deviceIds that should be used")
         ("thread-count,t", po::value<int>(), "number of threads used by openMP")
         ("gpu-only", "execution on gpu only")
         ("cpu-only", "execution on cpu only")
@@ -53,7 +54,13 @@ int main(int argc, char const *argv[])
     string inputFile = vm["input-file"].as<string>();
     double alpha = vm["alpha"].as<double>();
     int maxLevel = vm["max-level"].as<int>();
-    int numberOfGPUs = vm["gpu-count"].as<int>();
+
+    vector<int> gpuList;
+    if (vm.count("gpus")) {
+        gpuList = vm["gpus"].as<vector<int>>();
+    } else {
+        gpuList = {0};
+    }
 
     if (vm.count("thread-count"))
     {
@@ -70,6 +77,10 @@ int main(int argc, char const *argv[])
     if (verbose)
     {
         cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
+        cout << "Using following GPUs:" << endl;
+        for (auto deviceId : gpuList) {
+            cout << "\t" << deviceId << endl;
+        }
         cout << "Reading file: " << inputFile << endl;
     }
 
@@ -104,15 +115,15 @@ int main(int argc, char const *argv[])
             return -1;
         }
 
-        MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel);
+        MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, numberOfGPUs, verbose, heterogeneity);
+        calcSkeleton(&state, gpuList, verbose, heterogeneity);
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel);
-        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, verbose);
-        calcSkeleton(&state, numberOfGPUs, verbose, heterogeneity);
+        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
+        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
+        calcSkeleton(&state, gpuList, verbose, heterogeneity);
     }
 
     return 0;

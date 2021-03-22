@@ -255,6 +255,8 @@ TestResult GPUExecutor::executeLevel(int level, bool verbose)
   int numthreads = NUMTHREADS;
   dim3 block = dim3(numthreads);
   dim3 grid;
+
+  int numberOfGPUs = gpuList.size();
   int rowsPerGPU = (int)std::ceil((float)row_count / (float)numberOfGPUs);
 
   if (level == 0)
@@ -268,9 +270,10 @@ TestResult GPUExecutor::executeLevel(int level, bool verbose)
   }
 
 #pragma omp parallel for num_threads(numberOfGPUs) if (numberOfGPUs > 1)
-  for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++)
+  for (int i = 0; i < numberOfGPUs; i++)
   {
-    int start_row = deviceId * rowsPerGPU;
+    int deviceId = gpuList[i];
+    int start_row = i * rowsPerGPU;
 
     checkCudaErrors(cudaSetDevice(deviceId));
     switch (level)

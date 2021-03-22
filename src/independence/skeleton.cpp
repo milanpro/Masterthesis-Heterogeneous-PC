@@ -7,18 +7,16 @@
 #include <future>
 #include <vector>
 
-unsigned long long calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool verbose, Balancer *balancer)
+unsigned long long calcLevel(MMState *state, int maxMem, std::vector<int> gpuList, int level, bool verbose, Balancer *balancer)
 {
+  int numberOfGPUs = gpuList.size();
   if (level >= 1)
   {
-    int device_row_count = ((int)state->p) / numberOfGPUs;
-    int max_additional_row_index = state->p % numberOfGPUs;
+    int device_row_count = (state->p + numberOfGPUs - 1) / numberOfGPUs;
 #pragma omp parallel for
     for (int i = 0; i < numberOfGPUs; i++)
     {
-      int actual_device_row_count =
-          device_row_count + (i < max_additional_row_index);
-      callCompact(state, i, numberOfGPUs, actual_device_row_count);
+      callCompact(state, gpuList[i], i, numberOfGPUs, device_row_count);
     }
   }
 
@@ -27,24 +25,24 @@ unsigned long long calcLevel(MMState *state, int maxMem, int numberOfGPUs, int l
   return balancer->execute(level);
 }
 
-void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int heterogeneity, int maxMem,
+void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, int heterogeneity, int maxMem,
                   int startLevel)
 {
   
   if (verbose)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
-              << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
+              << "  p: " << state->p << " number of GPUS: " << gpuList.size() << std::endl;
 
-  state->adviceReadonlyCor(numberOfGPUs);
-  state->memAdvise(numberOfGPUs);
+  state->adviceReadonlyCor(gpuList);
+  state->memAdvise(gpuList);
 
-  auto balancer = Balancer(numberOfGPUs, state, static_cast<Heterogeneity>(heterogeneity), verbose);
+  auto balancer = Balancer(gpuList, state, static_cast<Heterogeneity>(heterogeneity), verbose);
 
   unsigned long long duratonSum = 0;
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
-    duratonSum += calcLevel(state, maxMem, numberOfGPUs, lvl, verbose, &balancer);
+    duratonSum += calcLevel(state, maxMem, gpuList, lvl, verbose, &balancer);
   }
 
   if (verbose)

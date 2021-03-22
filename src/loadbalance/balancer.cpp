@@ -8,11 +8,11 @@
 #include <omp.h>
 #include <chrono>
 
-Balancer::Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity, bool verbose) : numberOfGPUs(numberOfGPUs), state(state), verbose(verbose), heterogeneity(heterogeneity)
+Balancer::Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heterogeneity, bool verbose) : gpuList(gpuList), state(state), verbose(verbose), heterogeneity(heterogeneity)
 {
   int maxGPUCount = getDeviceCount();
 
-  if (numberOfGPUs > maxGPUCount)
+  if (gpuList.size() > maxGPUCount)
   {
     std::cout << "Only " << maxGPUCount << " GPUs available for kernel execution" << std::endl;
     exit(-1);
@@ -26,7 +26,7 @@ Balancer::Balancer(int numberOfGPUs, MMState *state, Heterogeneity heterogeneity
   ompThreadCount = omp_get_max_threads();
 
   int maxEdgeCount = (int)(state->p * (state->p - 1L) / 2);
-  gpuExecutor = std::make_shared<GPUExecutor>(state, maxEdgeCount, numberOfGPUs);
+  gpuExecutor = std::make_shared<GPUExecutor>(state, maxEdgeCount, gpuList);
   cpuExecutor = std::make_shared<CPUExecutor>(state);
 }
 
@@ -43,7 +43,7 @@ void Balancer::balance(int level)
 
   int variableCount = state->p;
   int balancedRows = 0;
-
+  int rowsPerGPU = (int)std::ceil((float)variableCount / (float)gpuList.size());
   if (
       heterogeneity == Heterogeneity::CPUOnly)
   {
@@ -55,7 +55,10 @@ void Balancer::balance(int level)
   else if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
   {
     gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
-    state->prefetchRows(0, variableCount, 0);
+
+    for (int i = 0; i < gpuList.size(); i++) {
+      state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+    }
   }
   else
   {
@@ -86,7 +89,7 @@ void Balancer::balance(int level)
 
     std::sort(sorted_test_iterations_gpu.begin(), sorted_test_iterations_gpu.end());
 
-    int max_iterations_threshold = ompThreadCount * level < variableCount ? sorted_test_iterations_gpu[variableCount - (ompThreadCount * level)] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
+    int max_iterations_threshold = ompThreadCount < variableCount ? sorted_test_iterations_gpu[variableCount - ompThreadCount] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
 
     int min_iterations_threshold = ompThreadCount * 0.1 < variableCount ? sorted_test_iterations_gpu[std::floor(ompThreadCount * 0.1)] : sorted_test_iterations_gpu[std::floor(variableCount * 0.1)];
 
@@ -113,7 +116,8 @@ void Balancer::balance(int level)
         if (balancedRows < row)
         {
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows});
-          state->prefetchRows(balancedRows, row - balancedRows, 0);
+          int deviceId = gpuList[balancedRows / rowsPerGPU];
+          state->prefetchRows(balancedRows, row - balancedRows, deviceId);
         }
         cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
         balancedRows = row;
@@ -122,7 +126,8 @@ void Balancer::balance(int level)
     if (balancedRows < variableCount)
     {
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, variableCount - balancedRows});
-      state->prefetchRows(balancedRows, variableCount - balancedRows, 0);
+      int deviceId = gpuList[balancedRows / rowsPerGPU];
+      state->prefetchRows(balancedRows, variableCount - balancedRows, deviceId);
     }
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
                         std::chrono::system_clock::now() - start)
@@ -155,7 +160,10 @@ unsigned long long Balancer::execute(int level)
 
 if (cpuExecutor->tasks.size() != 0) {
   cpuExecutor->migrateEdges(level, verbose);
-  state->prefetchRows(0, state->p, 0);
+  int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
+  for (int i = 0; i < gpuList.size(); i++) {
+    state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+  }
 }
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
