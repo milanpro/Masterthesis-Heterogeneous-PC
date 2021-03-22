@@ -36,6 +36,7 @@ void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int heterogene
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
+  state->adviceReadonlyCor(numberOfGPUs);
   auto balancer = Balancer(numberOfGPUs, state, static_cast<Heterogeneity>(heterogeneity), verbose);
 
   unsigned long long duratonSum = 0;

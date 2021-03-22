@@ -15,7 +15,7 @@ __global__ void compactCU(MMState state, int deviceId, int numberOfGPUs) {
   for (int cnt = 0; cnt < chunk; cnt++) {
     thid = threadIdx.x + blockDim.x * cnt;
     if (thid < state.p) {
-      matrix_row[thid] = state.adj[row_id * state.p + thid];
+      matrix_row[thid] = state.adj[row_id * state.pagesize + thid];
     }
   }
 
@@ -51,21 +51,21 @@ __global__ void compactCU(MMState state, int deviceId, int numberOfGPUs) {
     thid = threadIdx.x + blockDim.x * s;
     if (thid < state.p && thid > 0) {
       if (matrix_row[thid] != matrix_row[thid - 1]) {
-        state.adj_compact[row_id * state.p + matrix_row[thid] - 1] = thid;
+        state.adj_compact[row_id * state.pagesize + matrix_row[thid] - 1] = thid;
       }
       if (thid >= row_size && thid != state.p - 1) {
-        state.adj_compact[row_id * state.p + thid] = 0;
+        state.adj_compact[row_id * state.pagesize + thid] = 0;
       }
       if (thid == state.p - 1) {
-        atomicMax(state.max_adj, matrix_row[state.p - 1]);
-        state.adj_compact[row_id * state.p + state.p - 1] =
+        atomicMax(state.p, matrix_row[state.p - 1]);
+        state.adj_compact[row_id * state.pagesize + state.p - 1] =
             matrix_row[state.p - 1];
       }
     }
   }
 
-  if (threadIdx.x == 0 && state.adj[row_id * state.p] == 1) {
-    state.adj_compact[row_id * state.p] = 0;
+  if (threadIdx.x == 0 && state.adj[row_id * state.pagesize] == 1) {
+    state.adj_compact[row_id * state.pagesize] = 0;
   }
 }
 

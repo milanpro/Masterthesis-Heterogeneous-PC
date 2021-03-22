@@ -217,7 +217,7 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   }
   auto start = std::chrono::system_clock::now();
 
-#pragma omp parallel for shared(state, level, tasks) default(none) collapse(2)
+#pragma omp parallel for shared(state, level, tasks) default(none) collapse(2) schedule(guided)
   for (auto i = 0; i < tasks.size(); i++)
   {
     for (int col_node = 0; col_node < state->p; col_node++)
