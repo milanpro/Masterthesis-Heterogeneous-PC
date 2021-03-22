@@ -1,7 +1,5 @@
 #include "../util/cuda_util.cuh"
-#include "../util/matrix_print.cuh"
-#include "../executor/gpuExecutor.cuh"
-#include "../executor/cpuExecutor.hpp"
+#include "../loadbalance/balancer.hpp"
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
@@ -9,7 +7,7 @@
 #include <future>
 #include <vector>
 
-void calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool verbose, CPUExecutor *cpuExec, GPUExecutor *gpuExec)
+unsigned long long calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool verbose, Balancer *balancer)
 {
   if (level >= 1)
   {
@@ -24,56 +22,35 @@ void calcLevel(MMState *state, int maxMem, int numberOfGPUs, int level, bool ver
     }
   }
 
-  for (int row = 0; row < state->p; row++)
-  {
-    if (row % 2 == 0)
-    {
-      cpuExec->enqueueSplitTask(SplitTask{row, 1});
-    }
-    else
-    {
-      gpuExec->enqueueSplitTask(SplitTask{row, 1});
-    }
-  }
+  balancer->balance(level);
 
-  auto resCPUFuture = std::async([cpuExec, level, verbose] {
-    return cpuExec->executeLevel(level, verbose);
-  });
-  auto resGPUFuture = std::async([gpuExec, level, verbose] {
-    return gpuExec->executeLevel(level, verbose);
-  });
-
-  TestResult resCPU = resCPUFuture.get();
-  TestResult resGPU = resGPUFuture.get();
-  cpuExec->cleanupSplitTasks();
-  gpuExec->cleanupSplitTasks();
-
-  if (verbose)
-  {
-    std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
-              << std::max(resCPU.duration, resGPU.duration) << " \u03BCs." << std::endl;
-  }
+  return balancer->execute(level);
 }
 
-void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int maxMem,
+void calcSkeleton(MMState *state, int numberOfGPUs, bool verbose, int heterogeneity, int maxMem,
                   int startLevel)
 {
-  int maxEdgeCount = (int)(state->p * (state->p - 1L) / 2);
+  
   if (verbose)
     std::cout << "maxCondSize: " << state->maxCondSize
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << numberOfGPUs << std::endl;
 
-  auto gpuExec = GPUExecutor(state, maxEdgeCount, numberOfGPUs);
-  auto cpuExec = CPUExecutor(state);
+  state->adviceReadonlyCor(numberOfGPUs);
+  state->memAdvise(numberOfGPUs);
 
+  auto balancer = Balancer(numberOfGPUs, state, static_cast<Heterogeneity>(heterogeneity), verbose);
+
+  unsigned long long duratonSum = 0;
   for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
   {
-    calcLevel(state, maxMem, numberOfGPUs, lvl, verbose, &cpuExec, &gpuExec);
+    duratonSum += calcLevel(state, maxMem, numberOfGPUs, lvl, verbose, &balancer);
   }
 
   if (verbose)
   {
+    std::cout << "Summed execution duration: " << duratonSum << " \u03BCs." << std::endl;
+
     printSepsets(state);
   }
 }

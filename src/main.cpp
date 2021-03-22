@@ -10,10 +10,10 @@ namespace po = boost::program_options;
 #include <omp.h>
 using namespace std;
 
-#ifdef __linux__ 
-  const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
+#ifdef __linux__
+const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
 #elif _WIN32
-    const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
+const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
 #endif
 
 int main(int argc, char const *argv[])
@@ -29,6 +29,8 @@ int main(int argc, char const *argv[])
         ("corr", "input file is a correlation matrix")
         ("gpu-count,g", po::value<int>()->default_value(1), "number of gpus used")
         ("thread-count,t", po::value<int>(), "number of threads used by openMP")
+        ("gpu-only", "execution on gpu only")
+        ("cpu-only", "execution on cpu only")
         ("verbose,v", "verbose output");
 
     po::variables_map vm;
@@ -53,7 +55,8 @@ int main(int argc, char const *argv[])
     int maxLevel = vm["max-level"].as<int>();
     int numberOfGPUs = vm["gpu-count"].as<int>();
 
-    if (vm.count("thread-count")) {
+    if (vm.count("thread-count"))
+    {
         int numberOfThreads = vm["thread-count"].as<int>();
         omp_set_num_threads(numberOfThreads);
     }
@@ -85,8 +88,12 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    if (omp_get_max_threads() > array_data.get()->n_cols) {
-        omp_set_num_threads((int) array_data.get()->n_cols);
+    int heterogeneity = 0;
+
+    if (vm.count("gpu-only")) {
+        heterogeneity = 1;
+    } else if (vm.count("cpu-only")) {
+        heterogeneity = 2;
     }
 
     if (vm.count("corr"))
@@ -99,13 +106,13 @@ int main(int argc, char const *argv[])
 
         MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, numberOfGPUs, verbose);
+        calcSkeleton(&state, numberOfGPUs, verbose, heterogeneity);
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, (int) array_data.get()->n_rows, alpha, maxLevel);
+        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, verbose);
-        calcSkeleton(&state, numberOfGPUs, verbose);
+        calcSkeleton(&state, numberOfGPUs, verbose, heterogeneity);
     }
 
     return 0;

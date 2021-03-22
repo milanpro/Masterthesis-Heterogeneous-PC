@@ -33,5 +33,11 @@ struct MMState {
 
   MMState(uint64_t p, int observations, double alpha, int maxLevel);
 
+  void adviceReadonlyCor(int numberOfGPUs);
+
+  void memAdvise(int numberOfGPUs);
+
+  void prefetchRows(int startRow, int rowCount, int deviceId);
+
   void destroy();
 };
