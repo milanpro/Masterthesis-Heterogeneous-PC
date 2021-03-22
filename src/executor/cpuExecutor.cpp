@@ -4,7 +4,7 @@
 #include "boost/math/special_functions/log1p.hpp"
 #include <chrono>
 #include <iostream>
-
+#include <vector>
 namespace CPU
 {
 #define CUT_THR 0.9999999
@@ -33,25 +33,26 @@ namespace CPU
     return calcPValue(r, observations);
   }
 
-  void testRowL0Triangluar(MMState *state, int row_node, int col_node)
+  void testRowL0Triangluar(MMState *state, int row_node, int col_node, std::shared_ptr<EdgeQueue> eQueue)
   {
     auto idx = state->p * row_node + col_node;
     if (col_node < row_node && state->adj[idx])
     {
       auto inv_idx = state->p * col_node + row_node;
       double pVal = calcPValue(state->cor[idx], state->observations);
-      state->pMax[inv_idx] = pVal;
-      if (state->pMax[inv_idx] >= state->alpha)
+      if (pVal >= state->alpha)
       {
-        state->adj[idx] = 0;
-        state->adj[inv_idx] = 0;
-        state->sepSets[(col_node * state->maxCondSize * state->p) +
-                       (row_node * state->maxCondSize)] = -2;
+        DeletedEdge result;
+        result.col = col_node;
+        result.row = row_node;
+        result.pMax = pVal;
+        result.sepSet = {};
+        eQueue->enqueue(result);
       }
     }
   }
 
-  void testRowL1(MMState *state, int row_node, int col_node)
+  void testRowL1(MMState *state, int row_node, int col_node, std::shared_ptr<EdgeQueue> eQueue)
   {
     int p = (int)state->p;
     int row_count = state->adj_compact[row_node * state->p + state->p - 1];
@@ -74,22 +75,12 @@ namespace CPU
           // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
           if (pVal >= state->alpha)
           {
-            state->adj[p * row_node + actual_col_node] = 0;
-            state->adj[p * actual_col_node + row_node] = 0;
-            if (row_node < actual_col_node)
-            {
-              state->pMax[p * row_node + actual_col_node] = pVal;
-              state->sepSets[row_node * p * state->maxCondSize +
-                             actual_col_node * state->maxCondSize] =
-                  state->adj_compact[row_node * p + subIndex];
-            }
-            else
-            {
-              state->pMax[p * actual_col_node + row_node] = pVal;
-              state->sepSets[actual_col_node * p * state->maxCondSize +
-                             row_node * state->maxCondSize] =
-                  state->adj_compact[actual_col_node * p + subIndex];
-            }
+            DeletedEdge result;
+            result.col = actual_col_node;
+            result.row = row_node;
+            result.pMax = pVal;
+            result.sepSet = {state->adj_compact[actual_col_node * p + subIndex]};
+            eQueue->enqueue(result);
             break;
           }
         }
@@ -98,7 +89,7 @@ namespace CPU
   }
 
   template <int lvlSize, int kLvlSizeSmall>
-  void testRowLN(MMState *state, int row_node, int col_node)
+  void testRowLN(MMState *state, int row_node, int col_node, std::shared_ptr<EdgeQueue> eQueue)
   {
     int row_count = state->adj_compact[row_node * state->p + state->p - 1];
 
@@ -160,51 +151,88 @@ namespace CPU
         // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
         if (pVal >= state->alpha)
         {
-          if (row_node < actual_col_node)
+          DeletedEdge result;
+          result.col = actual_col_node;
+          result.row = row_node;
+          result.pMax = pVal;
+          result.sepSet = {sepset_nodes[0]};
+          for (int j = 1; j < kLvlSizeSmall; ++j)
           {
-            state->adj[state->p * row_node + actual_col_node] = 0;
-            state->adj[state->p * actual_col_node + row_node] = 0;
-            state->pMax[state->p * row_node + actual_col_node] = pVal;
-            for (int j = 0; j < kLvlSizeSmall; ++j)
-            {
-              state->sepSets[row_node * state->p * state->maxCondSize +
-                             actual_col_node * state->maxCondSize + j] = sepset_nodes[j];
-            }
+            result.sepSet.push_back(sepset_nodes[j]);
           }
-          else
-          {
-
-            state->adj[state->p * row_node + actual_col_node] = 0;
-            state->adj[state->p * actual_col_node + row_node] = 0;
-            state->pMax[state->p * actual_col_node + row_node] = pVal;
-            for (int j = 0; j < kLvlSizeSmall; ++j)
-            {
-              state->sepSets[actual_col_node * state->p * state->maxCondSize +
-                             row_node * state->maxCondSize + j] = sepset_nodes[j];
-            }
-          }
+          eQueue->enqueue(result);
           break;
         }
       }
     }
   }
 
-  void testEdge(int level, MMState *state, int row_node, int col_node)
+  void testEdge(int level, MMState *state, int row_node, int col_node, std::shared_ptr<EdgeQueue> eQueue)
   {
     switch (level)
     {
     case 0:
-      testRowL0Triangluar(state, row_node, col_node);
+      testRowL0Triangluar(state, row_node, col_node, eQueue);
       break;
     case 1:
-      testRowL1(state, row_node, col_node);
+      testRowL1(state, row_node, col_node, eQueue);
       break;
     case 2:
-      testRowLN<4, 2>(state, row_node, col_node);
+      testRowLN<4, 2>(state, row_node, col_node, eQueue);
       break;
     case 3:
-      testRowLN<5, 3>(state, row_node, col_node);
+      testRowLN<5, 3>(state, row_node, col_node, eQueue);
       break;
+    }
+  }
+}
+
+void CPUExecutor::migrateEdges(int level, bool verbose)
+{
+  if (verbose)
+  {
+    std::cout << "Migrating CPU edges..." << std::endl;
+  }
+
+  DeletedEdge delEdge;
+  while (deletedEdges->try_dequeue(delEdge))
+  {
+    state->adj[state->p * delEdge.row + delEdge.col] = 0;
+    state->adj[state->p * delEdge.col + delEdge.row] = 0;
+
+    if (delEdge.row < delEdge.col)
+    {
+      state->pMax[state->p * delEdge.row + delEdge.col] = delEdge.pMax;
+      if (level == 0)
+      {
+        state->sepSets[delEdge.row * state->p * state->maxCondSize +
+                       delEdge.col * state->maxCondSize] = -2;
+      }
+      else
+      {
+        for (int j = 0; j < level; ++j)
+        {
+          state->sepSets[delEdge.row * state->p * state->maxCondSize +
+                         delEdge.col * state->maxCondSize + j] = delEdge.sepSet[j];
+        }
+      }
+    }
+    else
+    {
+      state->pMax[state->p * delEdge.col + delEdge.row] = delEdge.pMax;
+      if (level == 0)
+      {
+        state->sepSets[delEdge.col * state->p * state->maxCondSize +
+                       delEdge.row * state->maxCondSize] = -2;
+      }
+      else
+      {
+        for (int j = 0; j < level; ++j)
+        {
+          state->sepSets[delEdge.col * state->p * state->maxCondSize +
+                         delEdge.row * state->maxCondSize + j] = delEdge.sepSet[j];
+        }
+      }
     }
   }
 }
@@ -222,7 +250,7 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   {
     for (int col_node = 0; col_node < state->p; col_node++)
     {
-      CPU::testEdge(level, state, tasks[i].row, col_node);
+      CPU::testEdge(level, state, tasks[i].row, col_node, deletedEdges);
     }
   }
 

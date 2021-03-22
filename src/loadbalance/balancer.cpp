@@ -55,6 +55,7 @@ void Balancer::balance(int level)
   else if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
   {
     gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
+    state->prefetchRows(0, variableCount, 0);
   }
   else
   {
@@ -112,6 +113,7 @@ void Balancer::balance(int level)
         if (balancedRows < row)
         {
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows});
+          state->prefetchRows(balancedRows, row - balancedRows, 0);
         }
         cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
         balancedRows = row;
@@ -120,6 +122,7 @@ void Balancer::balance(int level)
     if (balancedRows < variableCount)
     {
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, variableCount - balancedRows});
+      state->prefetchRows(balancedRows, variableCount - balancedRows, 0);
     }
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
                         std::chrono::system_clock::now() - start)
@@ -140,15 +143,20 @@ unsigned long long Balancer::execute(int level)
   }
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
-  auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
-    return cpuExecutor->executeLevel(level, verbose);
-  });
   auto resGPUFuture = std::async([gpuExecutor, level, verbose] {
     return gpuExecutor->executeLevel(level, verbose);
   });
+  auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
+    return cpuExecutor->executeLevel(level, verbose);
+  });
 
-  TestResult resCPU = resCPUFuture.get();
   TestResult resGPU = resGPUFuture.get();
+  TestResult resCPU = resCPUFuture.get();
+
+if (cpuExecutor->tasks.size() != 0) {
+  cpuExecutor->migrateEdges(level, verbose);
+  state->prefetchRows(0, state->p, 0);
+}
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
   if (verbose)

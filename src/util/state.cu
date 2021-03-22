@@ -21,8 +21,8 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel)
   }
   std::fill_n(pMax, p * p, 0.0);
   std::fill_n(sepSets, p * p * maxCondSize, -1);
-
   memset(lock, 0, (uint64_t)sizeof(int) * p * p);
+  max_adj[0] = (int)p;
 }
 
 void MMState::adviceReadonlyCor(int numberOfGPUs) {
@@ -46,46 +46,43 @@ void MMState::prefetchRows(int startRow, int rowCount, int deviceId) {
       checkCudaErrors(cudaMemPrefetchAsync(sepSets + startRow * p * maxCondSize,
         (uint64_t)sizeof(int) * rowCount * maxCondSize,
         deviceId, 0));
-      checkCudaErrors(cudaMemPrefetchAsync(lock + startRow * p,
-        (uint64_t)sizeof(int) * rowCount,
-        deviceId, 0));
     }
 
 void MMState::memAdvise(int numberOfGPUs) {
+  checkCudaErrors(cudaMemAdvise(adj_compact,
+    (uint64_t)sizeof(int) * p * p,
+    cudaMemAdviseSetReadMostly, 0));
+
   for (int deviceId = 0; deviceId < numberOfGPUs; deviceId++) {
-    checkCudaErrors(cudaMemAdvise(adj + p * p / numberOfGPUs * deviceId,
-      (uint64_t)sizeof(int) * p * p / numberOfGPUs,
-      cudaMemAdviseSetPreferredLocation, deviceId));
+//     checkCudaErrors(cudaMemAdvise(adj + p * p / numberOfGPUs * deviceId,
+//       (uint64_t)sizeof(int) * p * p / numberOfGPUs,
+//       cudaMemAdviseSetPreferredLocation, deviceId));
 
-checkCudaErrors(cudaMemAdvise(adj_compact + p * p / numberOfGPUs * deviceId,
-      (uint64_t)sizeof(int) * p * p / numberOfGPUs,
-      cudaMemAdviseSetPreferredLocation, deviceId));
+// checkCudaErrors(cudaMemAdvise(pMax + p * p / numberOfGPUs * deviceId,
+//       (uint64_t)sizeof(double) * p * p / numberOfGPUs,
+//       cudaMemAdviseSetPreferredLocation, deviceId));
 
-checkCudaErrors(cudaMemAdvise(pMax + p * p / numberOfGPUs * deviceId,
-      (uint64_t)sizeof(double) * p * p / numberOfGPUs,
-      cudaMemAdviseSetPreferredLocation, deviceId));
-
-checkCudaErrors(cudaMemAdvise(sepSets + p * p * maxCondSize / numberOfGPUs * deviceId,
-      (uint64_t)sizeof(int) * p * p * maxCondSize / numberOfGPUs,
-      cudaMemAdviseSetPreferredLocation, deviceId));
+// checkCudaErrors(cudaMemAdvise(sepSets + p * p * maxCondSize / numberOfGPUs * deviceId,
+//       (uint64_t)sizeof(int) * p * p * maxCondSize / numberOfGPUs,
+//       cudaMemAdviseSetPreferredLocation, deviceId));
 
 checkCudaErrors(cudaMemAdvise(lock + p * p / numberOfGPUs * deviceId,
       (uint64_t)sizeof(int) * p * p / numberOfGPUs,
       cudaMemAdviseSetPreferredLocation, deviceId));
 
 // setting accessed by
-checkCudaErrors(cudaMemAdvise(adj,
-      (uint64_t)sizeof(int) * p * p,
-      cudaMemAdviseSetAccessedBy, deviceId));
-checkCudaErrors(cudaMemAdvise(adj_compact,
-      (uint64_t)sizeof(int) * p * p,
-      cudaMemAdviseSetAccessedBy, deviceId));
-checkCudaErrors(cudaMemAdvise(pMax,
-      (uint64_t)sizeof(double) * p * p,
-      cudaMemAdviseSetAccessedBy, deviceId));
-checkCudaErrors(cudaMemAdvise(sepSets,
-      (uint64_t)sizeof(int) * p * p * maxCondSize,
-      cudaMemAdviseSetAccessedBy, deviceId));
+// checkCudaErrors(cudaMemAdvise(adj,
+//       (uint64_t)sizeof(int) * p * p,
+//       cudaMemAdviseSetAccessedBy, deviceId));
+// checkCudaErrors(cudaMemAdvise(adj_compact,
+//       (uint64_t)sizeof(int) * p * p,
+//       cudaMemAdviseSetAccessedBy, deviceId));
+// checkCudaErrors(cudaMemAdvise(pMax,
+//       (uint64_t)sizeof(double) * p * p,
+//       cudaMemAdviseSetAccessedBy, deviceId));
+// checkCudaErrors(cudaMemAdvise(sepSets,
+//       (uint64_t)sizeof(int) * p * p * maxCondSize,
+//       cudaMemAdviseSetAccessedBy, deviceId));
 checkCudaErrors(cudaMemAdvise(lock,
       (uint64_t)sizeof(int) * p * p,
       cudaMemAdviseSetAccessedBy, deviceId));

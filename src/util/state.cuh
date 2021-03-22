@@ -27,6 +27,7 @@ struct MMState {
   int observations;
   double alpha;
   int maxCondSize;
+  int *max_adj;
   int *lock;
   int maxLevel;
 
