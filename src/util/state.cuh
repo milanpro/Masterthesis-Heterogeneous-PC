@@ -33,6 +33,7 @@ struct MMState {
   int *lock;
   int maxLevel;
   cuda::atomic<bool> *node_status;
+  bool gpu_done;
 
   MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId);
 

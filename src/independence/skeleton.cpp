@@ -8,6 +8,7 @@
 #include <future>
 #include <tuple>
 #include <vector>
+#include <cmath>
 #include "skeleton.hpp"
 #include <omp.h>
 
@@ -17,9 +18,9 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
 {
   auto start = std::chrono::system_clock::now();
   int numberOfGPUs = gpuList.size();
+  int device_row_count = (state->p + numberOfGPUs - 1) / numberOfGPUs;
   if (level >= 1)
   {
-    int device_row_count = (state->p + numberOfGPUs - 1) / numberOfGPUs;
 #pragma omp parallel for
     for (int i = 0; i < numberOfGPUs; i++)
     {
@@ -27,15 +28,18 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     }
   }
 
-  auto balanceDur = balancer->balance(level);
+  balancer->gpuExecutor->enqueueSplitTask(SplitTask{0, (int)state->p});
 
+  for (int i = 0; i < numberOfGPUs; i++) {
+    state->prefetchRows(i * device_row_count, device_row_count, gpuList[i]);
+  }
   auto execRes = balancer->execute(level);
 
   auto levelDur = std::chrono::duration_cast<std::chrono::microseconds>(
                                             std::chrono::system_clock::now() - start)
                                           .count();
 
-  return {levelDur, balanceDur, execRes};
+  return {levelDur, 0, execRes};
 }
 
 void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, std::string csvExportFile, int heterogeneity, bool showSepsets)

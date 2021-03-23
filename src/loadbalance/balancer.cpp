@@ -154,13 +154,13 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
     return gpuExecutor->executeLevel(level, verbose);
   });
   auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
-    return cpuExecutor->executeLevel(level, verbose);
+    return cpuExecutor->workstealingExecuteLevel(level, verbose);
   });
 
   TestResult resGPU = resGPUFuture.get();
   TestResult resCPU = resCPUFuture.get();
 
-if (cpuExecutor->tasks.size() != 0) {
+if (level != 0) {
   cpuExecutor->migrateEdges(level, verbose);
   int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
   for (int i = 0; i < gpuList.size(); i++) {

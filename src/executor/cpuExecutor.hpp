@@ -16,6 +16,7 @@ struct CPUExecutor : Executor
   MMState *state;
   std::shared_ptr<EdgeQueue> deletedEdges;
   TestResult executeLevel(int level, bool verbose = false);
+  TestResult workstealingExecuteLevel(int level, bool verbose);
   void migrateEdges(int level, bool verbose = false);
   CPUExecutor(MMState *state) : state(state)
   {

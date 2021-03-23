@@ -58,18 +58,12 @@ namespace GPU
 
     size_t row_node = rows[start_row + blockIdx.x];
     size_t row_neighbours = state.adj_compact[row_node * state.p + state.p - 1];
-    //printf("Row %d Col %d Neigh %d\n", (int) row_node, (int) blockIdx.y, (int) row_neighbours);
-    extern __shared__ double pVals[];
-    if (row_neighbours > blockIdx.y && row_neighbours >= 1)
-    {
-      size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y];
-      if (col_node > state.p)
-      {
-        return;
-      }
 
+    extern __shared__ double pVals[];
+    size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y];
+    if (row_neighbours > blockIdx.y && row_neighbours >= 1 && col_node < state.p && !state.node_status[row_node * state.p + col_node])
+    {
       size_t subIndex = 0;
-      size_t row_neighbours = state.adj_compact[row_node * state.p + state.p - 1];
       for (size_t offset = threadIdx.x; offset < row_neighbours; offset += blockDim.x)
       {
         if (offset == blockIdx.y)
@@ -84,16 +78,19 @@ namespace GPU
               state.cor[row_node * state.p + subIndex],
               state.cor[col_node * state.p + subIndex], state.observations);
         }
-        //printf("my pVal: %f for thread %hd \n", pVals[threadIdx.x], threadIdx.x);
+
         __syncthreads();
         if (threadIdx.x == 0)
         {
           for (size_t i = 0; i < blockDim.x && i < row_neighbours; ++i)
           {
             double pVal = pVals[i];
+            if (state.node_status[row_node * state.p + col_node]) {
+              break;
+            }
             if (offset + i < state.p && pVal >= state.alpha)
             {
-              //printf("col %d pVal %f row %d actcol %d\n", (int)(offset + i), pVal, (int)row_node, (int)col_node);
+              state.node_status[row_node * state.p + col_node] = true;
               if (row_node < col_node)
               {
                 if (atomicCAS_system(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
@@ -123,8 +120,12 @@ namespace GPU
           }
         }
         __syncthreads();
-        if (state.adj[row_node * state.p + col_node] == 0)
+        if (state.node_status[row_node * state.p + col_node] || state.adj[row_node * state.p + col_node] == 0)
           break;
+      }
+      if (threadIdx.x == 0)
+      {
+        state.node_status[row_node * state.p + col_node] = true;
       }
     }
   }
@@ -136,6 +137,8 @@ namespace GPU
     {
       return;
     }
+
+    bool edge_done = lvlSize % 2 == 1;
 
     size_t row_node = rows[start_row + blockIdx.x];
     size_t row_count = state.adj_compact[row_node * state.p + state.p - 1];
@@ -151,7 +154,10 @@ namespace GPU
       double res1[lvlSize][lvlSize];
       // Determine sepsets to work on
       size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y]; // get actual id
-      int row_neighbours = row_count - 1;                                   // get number of neighbors && exclude col_node
+      if (state.node_status[row_node * state.p + col_node] == edge_done) {
+        return;
+      }
+      int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
       size_t row_test_count = binomialCoeff(row_neighbours, kLvlSizeSmall);
       for (size_t test_index = threadIdx.x; test_index < row_test_count;
            test_index += blockDim.x)
@@ -197,8 +203,12 @@ namespace GPU
         pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
         double r = -SubmatPInv[0][1] / sqrt(SubmatPInv[0][0] * SubmatPInv[1][1]);
         double pVal = calcPValue(r, state.observations);
+        if (state.node_status[row_node * state.p + col_node] == edge_done) {
+          return;
+        }
         if (pVal >= state.alpha)
         {
+          state.node_status[row_node * state.p + col_node] = edge_done;
           if (row_node < col_node)
           {
             if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
@@ -229,9 +239,15 @@ namespace GPU
           }
         }
       }
+      __syncthreads();
+      if (threadIdx.x == 0)
+      {
+        state.node_status[row_node * state.p + col_node] = edge_done;
+      }
     }
   }
 }
+
 TestResult GPUExecutor::executeLevel(int level, bool verbose)
 {
   if (tasks.size() == 0)
@@ -295,6 +311,7 @@ TestResult GPUExecutor::executeLevel(int level, bool verbose)
     cudaDeviceSynchronize();
     checkLastCudaError(msg.c_str());
   }
+  state->gpu_done = level % 2 == 1;;
   auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
