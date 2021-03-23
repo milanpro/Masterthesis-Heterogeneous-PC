@@ -38,7 +38,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   return {levelDur, balanceDur, execRes};
 }
 
-void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, std::string csvExportFile, int heterogeneity)
+void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, std::string csvExportFile, int heterogeneity, bool showSepsets)
 {
   
   if (verbose)
@@ -68,7 +68,7 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, std::s
     std::cout << "Execution duration: " << executionDuration << " \u03BCs." << std::endl;
   }
 
-  int nrEdges = printSepsets(state, verbose);
+  int nrEdges = printSepsets(state, showSepsets);
 
   if (csvExportFile != "") {
     std::ofstream csvFile;

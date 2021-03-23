@@ -11,11 +11,12 @@ input_file = "/home/Christopher.Hagedorn/genData/TCGA-GBM-100-cor.csv"
 correlation = True
 alpha = 0.05
 observations = 3190
-verbose = False
+verbose = True
 OMPThreads = 80
 GPUs = [0]
 GPU_only = False
 CPU_only = False
+print_sepsets = False
 
 # Iteration options
 num_iterations = 3
@@ -31,6 +32,8 @@ def execute_iterations():
     args.append("--gpu-only")
   if (CPU_only):
     args.append("--cpu-only")
+  if (print_sepsets):
+    args.append("-p")
   for gpu in GPUs:
     args.append("-g")
     args.append(str(gpu))
@@ -43,8 +46,14 @@ def execute_iterations():
     f.write("execution duration\n")
 
   # Run iterations
-  for i in range(num_iterations):
-    subprocess.run(args)
+  print("Start benchmarking with the following arguments:")
+  print(" ".join(args))
+  print()
+  with open("benchmark.log", "w") as f:
+    for i in range(num_iterations):
+      print(f'Iteration {i} running...')
+      subprocess.run(args, stdout=f)
+      print(f'Iteration {i} finished\n')
 
 
 def plot_results():
@@ -61,6 +70,7 @@ def plot_results():
   durations = results.iloc[:,3:(levels * cols_per_level) + 4]
   mean_durations = durations.mean()
 
+  print(f'Mean execution duration: {mean_durations[-1]}')
   plot_frame = pd.DataFrame(index=np.arange(0, levels), columns=["execution", "balancing", "cpu", "gpu", ])
 
   for i in range(levels):
@@ -69,6 +79,7 @@ def plot_results():
     
   plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
 
+# %%
 if __name__ == "__main__":
   execute_iterations()
   plot_results()
