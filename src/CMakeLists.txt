@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 if(NOT DEFINED CMAKE_CUDA_STANDARD)
-    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
@@ -40,12 +40,14 @@ set_property(TARGET heterogpc
 set_property(TARGET heterogpc 
              PROPERTY CUDA_ARCHITECTURES 70)
 
+find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Armadillo REQUIRED)
 find_package(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(${BOOST_INCLUDE_DIRS})
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 target_link_libraries(heterogpc
     ${ARMADILLO_LIBRARIES}
