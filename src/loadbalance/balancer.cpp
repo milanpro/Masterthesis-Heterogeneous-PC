@@ -30,7 +30,7 @@ Balancer::Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heter
   cpuExecutor = std::make_shared<CPUExecutor>(state);
 }
 
-void Balancer::balance(int level)
+int64_t Balancer::balance(int level)
 {
   if (verbose)
   {
@@ -129,17 +129,19 @@ void Balancer::balance(int level)
       int deviceId = gpuList[balancedRows / rowsPerGPU];
       state->prefetchRows(balancedRows, variableCount - balancedRows, deviceId);
     }
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                        std::chrono::system_clock::now() - start)
-                        .count();
-    if (verbose)
-    {
-      std::cout << "Balanced " << cpuExecutor->tasks.size() << " rows on the CPU and " << variableCount - cpuExecutor->tasks.size() << " rows on the GPU in " << duration << " \u03BCs." << std::endl;
-    }
+
   }
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::system_clock::now() - start)
+                      .count();
+  if (verbose)
+  {
+    std::cout << "Balanced " << cpuExecutor->tasks.size() << " rows on the CPU and " << variableCount - cpuExecutor->tasks.size() << " rows on the GPU in " << duration << " \u03BCs." << std::endl;
+  }
+  return duration;
 }
 
-unsigned long long Balancer::execute(int level)
+std::tuple<TestResult, TestResult> Balancer::execute(int level)
 {
   auto verbose = this->verbose;
   if (verbose)
@@ -173,5 +175,5 @@ if (cpuExecutor->tasks.size() != 0) {
               << duration << " \u03BCs.\n"
               << std::endl;
   }
-  return duration;
+  return {resCPU, resGPU};
 }

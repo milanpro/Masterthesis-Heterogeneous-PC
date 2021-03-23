@@ -3,6 +3,7 @@
 #include "../executor/cpuExecutor.hpp"
 #include <vector>
 #include <memory>
+#include <tuple>
 
 enum Heterogeneity {
   All = 0,
@@ -21,7 +22,7 @@ struct Balancer
   std::shared_ptr<CPUExecutor> cpuExecutor;
   std::shared_ptr<GPUExecutor> gpuExecutor;
 
-  void balance(int level);
-  unsigned long long execute(int level);
+  int64_t balance(int level);
+  std::tuple<TestResult, TestResult> execute(int level);
   Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };

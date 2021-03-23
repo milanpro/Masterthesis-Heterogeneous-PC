@@ -3,12 +3,19 @@
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <future>
+#include <tuple>
 #include <vector>
+#include "skeleton.hpp"
+#include <omp.h>
 
-unsigned long long calcLevel(MMState *state, int maxMem, std::vector<int> gpuList, int level, bool verbose, Balancer *balancer)
+typedef std::tuple<int64_t, int64_t, std::tuple<TestResult, TestResult>> LevelMetrics;
+
+LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool verbose, Balancer *balancer)
 {
+  auto start = std::chrono::system_clock::now();
   int numberOfGPUs = gpuList.size();
   if (level >= 1)
   {
@@ -20,13 +27,18 @@ unsigned long long calcLevel(MMState *state, int maxMem, std::vector<int> gpuLis
     }
   }
 
-  balancer->balance(level);
+  auto balanceDur = balancer->balance(level);
 
-  return balancer->execute(level);
+  auto execRes = balancer->execute(level);
+
+  auto levelDur = std::chrono::duration_cast<std::chrono::microseconds>(
+                                            std::chrono::system_clock::now() - start)
+                                          .count();
+
+  return {levelDur, balanceDur, execRes};
 }
 
-void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, int heterogeneity, int maxMem,
-                  int startLevel)
+void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, std::string csvExportFile, int heterogeneity)
 {
   
   if (verbose)
@@ -34,26 +46,56 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, int he
               << "  observations: " << state->observations
               << "  p: " << state->p << " number of GPUS: " << gpuList.size() << std::endl;
 
+  auto start = std::chrono::system_clock::now();
   state->adviceReadonlyCor(gpuList);
   state->memAdvise(gpuList);
 
   auto balancer = Balancer(gpuList, state, static_cast<Heterogeneity>(heterogeneity), verbose);
 
-  unsigned long long duratonSum = 0;
-  for (int lvl = startLevel; lvl <= state->maxLevel; lvl++)
+  std::vector<LevelMetrics> levelMetrics;
+  for (int lvl = 0; lvl <= state->maxLevel; lvl++)
   {
-    duratonSum += calcLevel(state, maxMem, gpuList, lvl, verbose, &balancer);
+    auto metric = calcLevel(state, gpuList, lvl, verbose, &balancer);
+    levelMetrics.push_back(metric);
   }
+
+  auto executionDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+                                            std::chrono::system_clock::now() - start)
+                                          .count();
 
   if (verbose)
   {
-    std::cout << "Summed execution duration: " << duratonSum << " \u03BCs." << std::endl;
+    std::cout << "Execution duration: " << executionDuration << " \u03BCs." << std::endl;
+  }
 
-    printSepsets(state);
+  int nrEdges = printSepsets(state, verbose);
+
+  if (csvExportFile != "") {
+    std::ofstream csvFile;
+    csvFile.open(csvExportFile, std::ios::app | std::ios::out);
+
+    int numGPUs = balancer.heterogeneity == Heterogeneity::CPUOnly ? 0 : gpuList.size(); 
+    csvFile << numGPUs << ",";
+
+    int numOMPThreads = balancer.heterogeneity == Heterogeneity::GPUOnly ? 0 : omp_get_max_threads(); 
+    csvFile << numOMPThreads << ",";
+
+    csvFile << nrEdges << ",";
+
+    for (auto metric : levelMetrics) {
+      auto [levelDur, balanceDur, execRes] = metric;
+      auto [cpuRes, gpuRes] = execRes;
+      csvFile << levelDur << "," << balanceDur << "," << cpuRes.duration << "," << gpuRes.duration << ",";
+    }
+
+    csvFile << executionDuration << std::endl;
+
+
+    csvFile.close();
   }
 }
 
-void printSepsets(MMState *state)
+int printSepsets(MMState *state, bool verbose)
 {
   int nrEdges = 0;
   for (int i = 0; i < state->p; i++)
@@ -62,6 +104,7 @@ void printSepsets(MMState *state)
     {
       if (!state->adj[i * state->p + j])
       {
+        if (verbose) {
         std::string sepset_string = "";
         for (int k = 0; k < state->maxCondSize; k++)
         {
@@ -88,6 +131,7 @@ void printSepsets(MMState *state)
           std::cout << "Separation from " << i << " to " << j << " via "
                     << sepset_string << std::endl;
         }
+        }
       }
       else
       {
@@ -96,5 +140,8 @@ void printSepsets(MMState *state)
       }
     }
   }
-  std::cout << "Total number of edges: " << nrEdges << std::endl;
+  if (verbose) {
+    std::cout << "Total number of edges: " << nrEdges << std::endl;
+  }
+  return nrEdges;
 }

@@ -30,6 +30,7 @@ int main(int argc, char const *argv[])
         ("corr", "input file is a correlation matrix")
         ("gpus,g", po::value<vector<int>>()->multitoken(), "GPU deviceIds that should be used")
         ("thread-count,t", po::value<int>(), "number of threads used by openMP")
+        ("csv-export", po::value<string>(), "Export runtimes execution metrics to CSV")
         ("gpu-only", "execution on gpu only")
         ("cpu-only", "execution on cpu only")
         ("verbose,v", "verbose output");
@@ -68,6 +69,12 @@ int main(int argc, char const *argv[])
         omp_set_num_threads(numberOfThreads);
     }
 
+    string csvExportFile;
+    if (vm.count("csv-export"))
+    {
+        csvExportFile = vm["csv-export"].as<string>();
+    }
+
 #ifdef NDEBUG
     bool verbose = vm.count("verbose") != 0;
 #else
@@ -82,6 +89,9 @@ int main(int argc, char const *argv[])
             cout << "\t" << deviceId << endl;
         }
         cout << "Reading file: " << inputFile << endl;
+        if (csvExportFile != "") {
+            cout << "Export metrics to CSV file: " << csvExportFile << endl;
+        }
     }
 
     string _match(inputFile);
@@ -117,13 +127,13 @@ int main(int argc, char const *argv[])
 
         MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, gpuList, verbose, heterogeneity);
+        calcSkeleton(&state, gpuList, verbose, csvExportFile, heterogeneity);
     }
     else
     {
         MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-        calcSkeleton(&state, gpuList, verbose, heterogeneity);
+        calcSkeleton(&state, gpuList, verbose, csvExportFile, heterogeneity);
     }
 
     return 0;
