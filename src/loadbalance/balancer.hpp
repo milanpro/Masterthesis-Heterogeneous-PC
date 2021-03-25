@@ -24,5 +24,6 @@ struct Balancer
 
   int64_t balance(int level);
   std::tuple<TestResult, TestResult> execute(int level);
+  std::tuple<TestResult, TestResult> executeWorkstealing(int level);
   Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };

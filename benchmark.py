@@ -56,8 +56,9 @@ def execute_iterations():
       print(f'Iteration {i} finished\n')
 
 
-def plot_results():
-  results = pd.read_csv(csv_file)
+def plot_results(file):
+  print(file)
+  results = pd.read_csv(file)
 
   edges = results.iloc[:,2]
   if (not (edges[0] == edges).all()):
@@ -80,6 +81,21 @@ def plot_results():
   plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
 
 # %%
-if __name__ == "__main__":
-  execute_iterations()
-  plot_results()
+plot_results("benchmark_heterogeneous.csv")
+
+# %%
+plot_results("benchmark_gpu_only.csv")
+
+# %%
+plot_results("benchmark_only_max_threshold.csv")
+
+# %%
+plot_results("benchmark_cpu_dur_as_gpu.csv")
+# %%
+plot_results("benchmark_first_workstealing.csv")
+# %%
+plot_results("benchmark_atomic_workstealing.csv")
+# %%
+execute_iterations()
+#%%
+plot_results(csv_file)

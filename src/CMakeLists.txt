@@ -19,6 +19,18 @@ set(SOURCE_FILES
     executor/cpuExecutor.cpp
     executor/gpuExecutor.cuh
     executor/gpuExecutor.cu
+    executor/independence/cpuInd.cpp
+    executor/independence/cpuInd.hpp
+    executor/independence/gpuInd.cu
+    executor/independence/gpuInd.cuh
+    executor/testing/cpuRowTests.cpp
+    executor/testing/cpuRowTests.hpp
+    executor/testing/cpuWorkstealingTests.cpp
+    executor/testing/cpuWorkstealingTests.cpp
+    executor/testing/gpuRowTests.cu
+    executor/testing/gpuRowTests.cuh
+    executor/testing/gpuWorkstealingTests.cu
+    executor/testing/gpuWorkstealingTests.cuh
     independence/skeleton.cpp
     independence/skeleton.hpp
     independence/compact.cu

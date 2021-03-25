@@ -18,11 +18,6 @@ Balancer::Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heter
     exit(-1);
   }
 
-  // for (int i = 0; i < numberOfGPUs; i++)
-  // {
-  //   gpuToSMCountMap.push_back(getDeviceSMCount(i));
-  // }
-
   ompThreadCount = omp_get_max_threads();
 
   int maxEdgeCount = (int)(state->p * (state->p - 1L) / 2);
@@ -47,6 +42,7 @@ int64_t Balancer::balance(int level)
   if (
       heterogeneity == Heterogeneity::CPUOnly)
   {
+    // CPU only execution
     for (int row = 0; row < variableCount; row++)
     {
       cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
@@ -54,6 +50,7 @@ int64_t Balancer::balance(int level)
   }
   else if (level == 0 || heterogeneity == Heterogeneity::GPUOnly)
   {
+    // GPU only execution
     gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
 
     for (int i = 0; i < gpuList.size(); i++) {
@@ -69,10 +66,22 @@ int64_t Balancer::balance(int level)
      * or binomialCoeff(row_neighbours, level) / num_threads
      **/
 
+    // Calculate maximum iterations the GPU could possibly need in this level
     size_t max_row_test_count = level > 1 ? binomialCoeff(variableCount - 2, level) : variableCount - 2;
 
     int max_test_iterations_gpu = std::ceil((float)max_row_test_count / (float)NUMTHREADS);
 
+    // Calculate iterations thresholdwith which is balanced on the CPU
+    cpuExecutor->calculateRowLengthMap(level);
+
+    int max_iterations_idx = ompThreadCount < variableCount ? ompThreadCount : std::ceil(variableCount * 0.25);
+
+    auto row_length = std::get<1>(cpuExecutor->rowLengthMap[max_iterations_idx]);
+
+    size_t row_test_count = level > 1 ? binomialCoeff(row_length - 1, level) : row_length - 1;
+    int max_iterations_threshold = std::ceil((float)row_test_count / (float)NUMTHREADS);
+
+    // Calculate iterations needed per row on the GPU
     std::vector<int> test_iterations_gpu(variableCount, 0);
 
     for (int row = 0; row < variableCount; row++)
@@ -85,21 +94,15 @@ int64_t Balancer::balance(int level)
       }
     }
 
-    std::vector<int> sorted_test_iterations_gpu = test_iterations_gpu;
-
-    std::sort(sorted_test_iterations_gpu.begin(), sorted_test_iterations_gpu.end());
-
-    int max_iterations_threshold = ompThreadCount < variableCount ? sorted_test_iterations_gpu[variableCount - ompThreadCount] : sorted_test_iterations_gpu[std::ceil(variableCount * 0.75)];
-
-    int min_iterations_threshold = ompThreadCount * 0.1 < variableCount ? sorted_test_iterations_gpu[std::floor(ompThreadCount * 0.1)] : sorted_test_iterations_gpu[std::floor(variableCount * 0.1)];
-
     if (verbose)
     {
-      std::cout << "Maximum possible iterations: " << max_test_iterations_gpu << "\nMax GPU iteration threshold: " << max_iterations_threshold << "\nMin GPU iteration threshold: " << min_iterations_threshold << std::endl;
+      std::cout << "Maximum possible iterations: " << max_test_iterations_gpu << "\nMax GPU iteration threshold: " << max_iterations_threshold <<  std::endl;
     }
 
+    // Start balancing
     for (int row = 0; row < variableCount; row++)
     {
+      // Skip rows which are empty
       if (test_iterations_gpu[row] == 0)
       {
         if (balancedRows + 1 == row)
@@ -109,9 +112,10 @@ int64_t Balancer::balance(int level)
         continue;
       }
 
+      // Rows already scheduled on CPU
       int cpu_row_count = cpuExecutor->tasks.size();
 
-      if (test_iterations_gpu[row] >= max_iterations_threshold || test_iterations_gpu[row] <= min_iterations_threshold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
+      if (test_iterations_gpu[row] >= max_iterations_threshold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
       {
         if (balancedRows < row)
         {
@@ -119,17 +123,18 @@ int64_t Balancer::balance(int level)
           int deviceId = gpuList[balancedRows / rowsPerGPU];
           state->prefetchRows(balancedRows, row - balancedRows, deviceId);
         }
+        // Balance row on CPU
         cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
         balancedRows = row;
       }
     }
     if (balancedRows < variableCount)
     {
+      // place left rows on GPU
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, variableCount - balancedRows});
       int deviceId = gpuList[balancedRows / rowsPerGPU];
       state->prefetchRows(balancedRows, variableCount - balancedRows, deviceId);
     }
-
   }
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::system_clock::now() - start)
@@ -150,8 +155,52 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
   }
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
-  auto resGPUFuture = std::async([gpuExecutor, level, verbose] {
-    return gpuExecutor->executeLevel(level, verbose);
+  auto maxRowLength = level == 0 ? state->p : std::get<1>(cpuExecutor->rowLengthMap[0]);
+  auto resGPUFuture = std::async([gpuExecutor, level, maxRowLength, verbose] {
+    return gpuExecutor->executeLevel(level, false, maxRowLength, verbose);
+  });
+  auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
+    return cpuExecutor->executeLevel(level, verbose);
+  });
+
+  TestResult resGPU = resGPUFuture.get();
+  TestResult resCPU = resCPUFuture.get();
+
+if (level != 0) {
+  cpuExecutor->migrateEdges(level, verbose);
+  int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
+  for (int i = 0; i < gpuList.size(); i++) {
+    state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+  }
+}
+
+  unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
+  if (verbose)
+  {
+    std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
+              << duration << " \u03BCs.\n"
+              << std::endl;
+  }
+  return {resCPU, resGPU};
+}
+
+
+std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
+{
+  auto verbose = this->verbose;
+  if (verbose)
+  {
+    std::cout << "Start workstealing execution..." << std::endl;
+  }
+
+  auto cpuExecutor = this->cpuExecutor;
+  auto gpuExecutor = this->gpuExecutor;
+  cpuExecutor->calculateRowLengthMap(level);
+
+  auto maxRowLength = std::get<1>(cpuExecutor->rowLengthMap[0]);
+
+  auto resGPUFuture = std::async([gpuExecutor, level, maxRowLength, verbose] {
+    return gpuExecutor->executeLevel(level, true, maxRowLength, verbose);
   });
   auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
     return cpuExecutor->workstealingExecuteLevel(level, verbose);
