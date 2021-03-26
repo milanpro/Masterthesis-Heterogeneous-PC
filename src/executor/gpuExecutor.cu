@@ -40,6 +40,10 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
   int numberOfGPUs = gpuList.size();
   int rowsPerGPU = (int)std::ceil((float)row_count / (float)numberOfGPUs);
 
+  if (verbose) {
+    std::cout << "\tRows per GPU: " << rowsPerGPU << " Maximum row length: " << maxRowLength << std::endl;
+  }
+
   if (level == 0)
   {
     int max_rows = (int)std::ceil((float)rowsPerGPU * (float)state->p / (float)numthreads);
@@ -47,7 +51,6 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
   }
   else
   {
-    std::cout << "rowsPerGPU " << rowsPerGPU << " maxRowLength " << maxRowLength << std::endl;
     grid = dim3(rowsPerGPU, maxRowLength);
   }
 
@@ -101,6 +104,8 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
   if (workstealing) {
     state->gpu_done = level % 2 == 1;
   }
+
+  checkCudaErrors(cudaFree(rows));
   
   auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                             std::chrono::system_clock::now() - start)

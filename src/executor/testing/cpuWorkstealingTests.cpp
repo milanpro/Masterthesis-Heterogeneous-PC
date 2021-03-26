@@ -1,7 +1,7 @@
 #include "cpuWorkstealingTests.hpp"
 #include "../independence/cpuInd.hpp"
 
-void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count)
+void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done)
 {
   int p = (int)state->p;
 
@@ -23,6 +23,7 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
       if (pVal >= state->alpha)
       {
         state->node_status[row_node * state->p + actual_col_node] = true;
+        edges_done++;
         DeletedEdge result;
         result.col = actual_col_node;
         result.row = row_node;
@@ -36,7 +37,7 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
   state->node_status[row_node * state->p + actual_col_node] = true;
 }
 
-void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, bool edge_done, int level)
+void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done, bool edge_done, int level)
 {
   int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
   size_t row_test_count = binomialCoeff(row_neighbours, level);
@@ -99,6 +100,7 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
     if (pVal >= state->alpha)
     {
       state->node_status[row_node * state->p + actual_col_node] = edge_done;
+      edges_done++;
       DeletedEdge result;
       result.col = actual_col_node;
       result.row = row_node;

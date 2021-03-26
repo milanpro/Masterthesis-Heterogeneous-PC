@@ -6,14 +6,16 @@
 #include <vector>
 #include <tuple>
 #include <omp.h>
+#include <atomic>
 
 TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
 {
-  if (level == 0) {
-      return TestResult{0, 0};
+  if (level == 0)
+  {
+    return TestResult{0, 0};
   }
   auto start = std::chrono::system_clock::now();
-
+  std::atomic<int> edges_done = 0;
   bool edge_done = level % 2 == 1;
 #pragma omp parallel
   {
@@ -30,11 +32,11 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
         {
           if (level == 1)
           {
-            testEdgeWorkstealingL1(state, row_node, i, col_node, deletedEdges, row_length);
+            testEdgeWorkstealingL1(state, row_node, i, col_node, deletedEdges, row_length, edges_done);
           }
           else
           {
-            testEdgeWorkstealingLN(state, row_node, i, col_node, deletedEdges, row_length, edge_done, level);
+            testEdgeWorkstealingLN(state, row_node, i, col_node, deletedEdges, row_length, edges_done, edge_done, level);
           }
         }
       }
@@ -49,7 +51,8 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
                                             .count());
   if (verbose)
   {
-    std::cout << "\tCPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+    std::cout
+        << "\tCPU is done. Time: " << (int)duration << " \u03BCs. Edges stolen: " << edges_done << std::endl;
   }
   return TestResult{duration, 0};
 }
@@ -133,7 +136,8 @@ void CPUExecutor::migrateEdges(int level, bool verbose)
 
 bool compTuple(std::tuple<int, int> i, std::tuple<int, int> j) { return (std::get<1>(i) > std::get<1>(j)); }
 
-void CPUExecutor::calculateRowLengthMap(int level) {
+void CPUExecutor::calculateRowLengthMap(int level)
+{
   rowLengthMap.clear();
 
   for (int row = 0; row < state->p; row++)

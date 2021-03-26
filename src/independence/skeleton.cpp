@@ -32,7 +32,9 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   int64_t balanceDur = 0;
   if (workstealing)
   {
-    balancer->gpuExecutor->enqueueSplitTask(SplitTask{0, (int)state->p});
+    if (level == 0) {
+      balancer->gpuExecutor->enqueueSplitTask(SplitTask{0, (int)state->p});
+    }
     for (int i = 0; i < numberOfGPUs; i++)
     {
       state->prefetchRows(i * device_row_count, device_row_count, gpuList[i]);
