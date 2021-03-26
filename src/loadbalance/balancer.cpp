@@ -66,7 +66,7 @@ int64_t Balancer::balance(int level)
      * or binomialCoeff(row_neighbours, level) / num_threads
      **/
 
-    int max_rows_on_cpu_multiplier = 0.25;
+    float max_rows_on_cpu_multiplier = 0.25;
 
     if (level == 2) {
       max_rows_on_cpu_multiplier = 0.55;
@@ -74,7 +74,7 @@ int64_t Balancer::balance(int level)
       max_rows_on_cpu_multiplier = 0.05;
     }
 
-    int max_rows_on_cpu = max_rows_on_cpu_multiplier * ompThreadCount;
+    int max_rows_on_cpu = (float)max_rows_on_cpu_multiplier * ompThreadCount;
 
     // Calculate maximum iterations the GPU could possibly need in this level
     size_t max_row_test_count = level > 1 ? binomialCoeff(variableCount - 2, level) : variableCount - 2;
@@ -165,7 +165,7 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
   }
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
-  auto maxRowLength = level == 0 ? state->p : std::get<1>(cpuExecutor->rowLengthMap[0]);
+  auto maxRowLength = level == 0 || heterogeneity != Heterogeneity::All ? state->p : std::get<1>(cpuExecutor->rowLengthMap[0]);
   auto resGPUFuture = std::async([gpuExecutor, level, maxRowLength, verbose] {
     return gpuExecutor->executeLevel(level, false, maxRowLength, verbose);
   });

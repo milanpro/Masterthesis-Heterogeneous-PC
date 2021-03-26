@@ -31,7 +31,16 @@ def read_benchmarks():
   json_path = pathlib.Path(working_directory, benchmark_json)
   with open(json_path) as f:
     data = json.load(f)
-    return data
+    benchmarks = []
+    for bench in data["benchmarks"]:
+      benchmark = {}
+      for key in default_benchmark.keys():
+        if not bench.get(key) is None:
+          benchmark[key] = bench.get(key)
+        else:
+          benchmark[key] = default_benchmark[key]
+      benchmarks.append(benchmark)
+    return benchmarks
 
 def execute_iterations(benchmark):
   csv_path = pathlib.Path(working_directory, benchmark["csv_file"])
@@ -72,16 +81,10 @@ def execute_iterations(benchmark):
       print(f'Iteration {i} finished\n')
 
 
-def execute_missing_benchmarks(data):
-  for bench in data["benchmarks"]:
-    csv_path = pathlib.Path(working_directory, bench["csv_file"])
+def execute_missing_benchmarks(benchmarks):
+  for benchmark in benchmarks:
+    csv_path = pathlib.Path(working_directory, benchmark["csv_file"])
     if not csv_path.is_file():
-      benchmark = {}
-      for key in default_benchmark.keys():
-        if not bench.get(key) is None:
-          benchmark[key] = bench.get(key)
-        else:
-          benchmark[key] = default_benchmark[key]
       execute_iterations(benchmark)
 
 def plot_results(file, max_level):
@@ -107,17 +110,23 @@ def plot_results(file, max_level):
     dur = mean_durations[i * cols_per_level:(i + 1) * cols_per_level]
     plot_frame.iloc[i] = dur.to_list()
     
-  plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
+  ax = plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
+  ax.get_figure().savefig(pathlib.Path("figures", file.replace(".csv", ".svg")))
 
-def plot_benchmark(data, num):
-  benchmark = data["benchmarks"][num]
+def plot_benchmark(benchmark):
   plot_results(benchmark["csv_file"], benchmark["max_level"])
 
 
 # %%
-data = read_benchmarks()
+benchmarks = read_benchmarks()
 # %%
-execute_missing_benchmarks(data)
+execute_missing_benchmarks(benchmarks)
 # %%
-plot_benchmark(data,0)
+plot_benchmark(benchmarks[0])
+# %%
+plot_benchmark(benchmarks[1])
+# %%
+plot_benchmark(benchmarks[2])
+# %%
+plot_benchmark(benchmarks[3])
 # %%
