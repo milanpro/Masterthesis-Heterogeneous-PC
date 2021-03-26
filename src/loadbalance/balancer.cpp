@@ -66,6 +66,16 @@ int64_t Balancer::balance(int level)
      * or binomialCoeff(row_neighbours, level) / num_threads
      **/
 
+    int max_rows_on_cpu_multiplier = 0.25;
+
+    if (level == 2) {
+      max_rows_on_cpu_multiplier = 0.55;
+    } else if (level == 3) {
+      max_rows_on_cpu_multiplier = 0.05;
+    }
+
+    int max_rows_on_cpu = max_rows_on_cpu_multiplier * ompThreadCount;
+
     // Calculate maximum iterations the GPU could possibly need in this level
     size_t max_row_test_count = level > 1 ? binomialCoeff(variableCount - 2, level) : variableCount - 2;
 
@@ -74,7 +84,7 @@ int64_t Balancer::balance(int level)
     // Calculate iterations thresholdwith which is balanced on the CPU
     cpuExecutor->calculateRowLengthMap(level);
 
-    int max_iterations_idx = ompThreadCount < variableCount ? ompThreadCount : std::ceil(variableCount * 0.25);
+    int max_iterations_idx = max_rows_on_cpu < variableCount ? max_rows_on_cpu : std::ceil(variableCount * max_rows_on_cpu_multiplier);
 
     auto row_length = std::get<1>(cpuExecutor->rowLengthMap[max_iterations_idx]);
 
@@ -115,7 +125,7 @@ int64_t Balancer::balance(int level)
       // Rows already scheduled on CPU
       int cpu_row_count = cpuExecutor->tasks.size();
 
-      if (test_iterations_gpu[row] >= max_iterations_threshold || (variableCount - row) <= level * (ompThreadCount - cpu_row_count))
+      if (test_iterations_gpu[row] >= max_iterations_threshold && cpu_row_count < max_rows_on_cpu)
       {
         if (balancedRows < row)
         {
