@@ -33,6 +33,7 @@ int main(int argc, char const *argv[])
         ("csv-export", po::value<string>(), "Export runtimes execution metrics to CSV")
         ("gpu-only", "execution on gpu only")
         ("cpu-only", "execution on cpu only")
+        ("workstealing,w", "use workstealing CPU executor")
         ("print-sepsets,p", "prints-sepsets")
         ("verbose,v", "verbose output");
 
@@ -128,13 +129,13 @@ int main(int argc, char const *argv[])
 
         MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, gpuList, verbose, csvExportFile, heterogeneity, vm.count("print-sepsets"));
+        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, heterogeneity, vm.count("print-sepsets"));
     }
     else
     {
         MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-        calcSkeleton(&state, gpuList, verbose, csvExportFile, heterogeneity, vm.count("print-sepsets"));
+        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, heterogeneity, vm.count("print-sepsets"));
     }
 
     return 0;

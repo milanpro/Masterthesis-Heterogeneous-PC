@@ -8,6 +8,8 @@ https://github.com/LIS-Laboratory/cupc
 
 https://github.com/cran/pcalg
 
+https://nvidia.github.io/libcudacxx/extended_api/synchronization_primitives/atomic.html
+
 #### TCGA Datasets
 Can be found in: `/home/Christopher.Hagedorn/genData`
 

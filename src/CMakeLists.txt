@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 if(NOT DEFINED CMAKE_CUDA_STANDARD)
-    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
@@ -19,6 +19,18 @@ set(SOURCE_FILES
     executor/cpuExecutor.cpp
     executor/gpuExecutor.cuh
     executor/gpuExecutor.cu
+    executor/independence/cpuInd.cpp
+    executor/independence/cpuInd.hpp
+    executor/independence/gpuInd.cu
+    executor/independence/gpuInd.cuh
+    executor/testing/cpuRowTests.cpp
+    executor/testing/cpuRowTests.hpp
+    executor/testing/cpuWorkstealingTests.cpp
+    executor/testing/cpuWorkstealingTests.cpp
+    executor/testing/gpuRowTests.cu
+    executor/testing/gpuRowTests.cuh
+    executor/testing/gpuWorkstealingTests.cu
+    executor/testing/gpuWorkstealingTests.cuh
     independence/skeleton.cpp
     independence/skeleton.hpp
     independence/compact.cu
@@ -40,12 +52,14 @@ set_property(TARGET heterogpc
 set_property(TARGET heterogpc 
              PROPERTY CUDA_ARCHITECTURES 70)
 
+find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Armadillo REQUIRED)
 find_package(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(${BOOST_INCLUDE_DIRS})
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 target_link_libraries(heterogpc
     ${ARMADILLO_LIBRARIES}

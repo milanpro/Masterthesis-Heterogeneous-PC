@@ -10,6 +10,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
   checkCudaErrors(cudaMallocManaged(&cor, (uint64_t)sizeof(double) * p * p));
   checkCudaErrors(cudaMallocManaged(&pMax, (uint64_t)sizeof(double) * p * p));
+  checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(cuda::atomic<bool>) * p * p));
   checkCudaErrors(
       cudaMallocManaged(&sepSets, (uint64_t)sizeof(int) * p * p * maxCondSize));
   checkCudaErrors(
@@ -18,6 +19,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   checkCudaErrors(cudaMallocManaged(&lock, (uint64_t)sizeof(int) * p * p));
   std::fill_n(adj, p * p, 1);
   std::fill_n(adj_compact, p * p, 1);
+  std::fill_n(node_status, p * p, false);
   for (int i = 0; i < p; ++i)
   {
     adj[i * p + i] = 0;
@@ -27,6 +29,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   std::fill_n(sepSets, p * p * maxCondSize, -1);
   memset(lock, 0, (uint64_t)sizeof(int) * p * p);
   max_adj[0] = (int)p;
+  gpu_done = false;
 }
 
 void MMState::adviceReadonlyCor(std::vector<int> gpuList)
@@ -84,4 +87,5 @@ void MMState::destroy()
   checkCudaErrors(cudaFree(sepSets));
   checkCudaErrors(cudaFree(adj_compact));
   checkCudaErrors(cudaFree(lock));
+  checkCudaErrors(cudaFree(node_status));
 }

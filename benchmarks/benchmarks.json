@@ -1,0 +1,30 @@
+{
+  "benchmarks": [
+    {
+      "csv_file": "benchmark_workstealing.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_gpu_only.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "GPU_only": true
+    },
+    {
+      "csv_file": "benchmark_pre_balanced.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_cpu_only.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "CPU_only": true
+    }
+  ]
+}
