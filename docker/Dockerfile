@@ -40,7 +40,7 @@ RUN mkdir -p /tmp/armadillo && \
 
 # Python
 RUN pip3 install Cython
-RUN pip3 install numpy matplotlib
+RUN pip3 install numpy
 RUN pip3 install pandas
 
 # Executable 
