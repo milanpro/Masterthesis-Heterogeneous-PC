@@ -10,6 +10,19 @@ https://github.com/cran/pcalg
 
 https://nvidia.github.io/libcudacxx/extended_api/synchronization_primitives/atomic.html
 
+#### Docker
+Build the base image using:
+
+x86_64: `docker build -f docker/Dockerfile.base -t milanpro/cmake-armadillo-python38-centos8 .`
+
+ppc64le: `docker build -f docker/Dockerfile.base.ppc64le -t milanpro/cmake-armadillo-python38-centos8-ppc64le .`
+
+The executable image is built using:
+
+x86_64: `docker build -f docker/Dockerfile -t milanpro/heterogpc .`
+
+ppc64le: `docker build -f docker/Dockerfile.ppc64le -t milanpro/heterogpc-ppc64le .`
+
 #### TCGA Datasets
 Can be found in: `/home/Christopher.Hagedorn/genData`
 

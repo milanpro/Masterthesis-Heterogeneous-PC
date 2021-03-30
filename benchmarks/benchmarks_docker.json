@@ -1,0 +1,30 @@
+{
+  "benchmarks": [
+    {
+      "csv_file": "benchmark_workstealing.csv",
+      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "workstealing": true,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_gpu_only.csv",
+      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "GPU_only": true
+    },
+    {
+      "csv_file": "benchmark_pre_balanced.csv",
+      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "workstealing": false,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_cpu_only.csv",
+      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "CPU_only": true
+    }
+  ]
+}

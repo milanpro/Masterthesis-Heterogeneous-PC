@@ -1,4 +1,4 @@
-FROM milanpro/cmake-armadillo-python38-centos8:latest
+FROM milanpro/cmake-armadillo-python38-centos8-ppc64le:latest
 
 # Executable 
 RUN mkdir -p /usr/src/project/src

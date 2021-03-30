@@ -1,10 +1,12 @@
 #%%
 import subprocess
-
+import os
 import numpy as np
 import pandas as pd
 import json
 import pathlib
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 working_directory = "benchmarks"
 benchmark_json = "benchmarks.json"
@@ -45,7 +47,7 @@ def read_benchmarks():
 def execute_iterations(benchmark):
   csv_path = pathlib.Path(working_directory, benchmark["csv_file"])
   # Building program arguments
-  args = ["/home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)]
+  args = [dir_path + "/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)]
   if (benchmark["correlation"]):
     args.append("--corr")
   if (benchmark["verbose"]):
