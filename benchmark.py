@@ -26,7 +26,8 @@ default_benchmark = {
   "CPU_only" : False,
   "print_sepsets" : False,
   "workstealing" : False,
-  "num_iterations" : 3
+  "num_iterations" : 3,
+  "numa_node": -1
 }
 
 def read_benchmarks():
@@ -47,7 +48,10 @@ def read_benchmarks():
 def execute_iterations(benchmark):
   csv_path = pathlib.Path(working_directory, benchmark["csv_file"])
   # Building program arguments
-  args = [dir_path + "/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)]
+  args = []
+  if benchmark["numa_node"] != -1:
+    args = ["numactl", "-N", str(benchmark["numa_node"]), "-m", str(benchmark["numa_node"])]
+  args.extend([dir_path + "/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)])
   if (benchmark["correlation"]):
     args.append("--corr")
   if (benchmark["verbose"]):
@@ -132,3 +136,6 @@ plot_benchmark(benchmarks[2])
 # %%
 plot_benchmark(benchmarks[3])
 # %%
+plot_benchmark(benchmarks[4])
+# %%
+plot_benchmark(benchmarks[5])

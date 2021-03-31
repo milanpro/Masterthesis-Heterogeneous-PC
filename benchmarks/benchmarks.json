@@ -25,6 +25,20 @@
       "workstealing": false,
       "num_iterations": 5,
       "CPU_only": true
+    },
+    {
+      "csv_file": "benchmark_workstealing_numa0.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 5,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_pre_balanced_numa0.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "numa_node": 0
     }
   ]
 }
