@@ -182,6 +182,8 @@ if (level != 0) {
   for (int i = 0; i < gpuList.size(); i++) {
     state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
   }
+} else if (heterogeneity == Heterogeneity::CPUOnly) {
+  cpuExecutor->migrateEdges(level, verbose);
 }
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
