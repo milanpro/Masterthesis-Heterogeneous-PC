@@ -139,3 +139,6 @@ plot_benchmark(benchmarks[3])
 plot_benchmark(benchmarks[4])
 # %%
 plot_benchmark(benchmarks[5])
+# %%
+plot_benchmark(benchmarks[6])
+# %%

@@ -94,7 +94,7 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
     int numGPUs = balancer.heterogeneity == Heterogeneity::CPUOnly ? 0 : gpuList.size();
     csvFile << numGPUs << ",";
 
-    int numOMPThreads = balancer.heterogeneity == Heterogeneity::GPUOnly ? 0 : omp_get_max_threads();
+    int numOMPThreads = omp_get_max_threads();
     csvFile << numOMPThreads << ",";
 
     csvFile << nrEdges << ",";
