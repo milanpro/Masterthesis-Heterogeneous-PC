@@ -28,11 +28,30 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     }
   }
 
+  if (level != 0)
+  {
+    std::ofstream csvFile;
+    csvFile.open("" + level + "test_iteration_map.csv", std::ios::app | std::ios::out);
+
+    for (int row = 0; row < state->p; row++)
+    {
+      int row_length = state->adj_compact[row * state->p + state->p - 1];
+      if (row_length >= level)
+      {
+        size_t row_test_count = level > 1 ? binomialCoeff(row_length - 1, level) : row_length - 1;
+        int test_iterations_gpu = std::ceil((float)row_test_count / (float)NUMTHREADS);
+        csvFile << row_test_count << "," << test_iterations_gpu << std::endl;
+      }
+    }
+    csvFile.close();
+  }
+
   std::tuple<TestResult, TestResult> execRes;
   int64_t balanceDur = 0;
   if (workstealing)
   {
-    if (level == 0) {
+    if (level == 0)
+    {
       balancer->gpuExecutor->enqueueSplitTask(SplitTask{0, (int)state->p});
     }
     for (int i = 0; i < numberOfGPUs; i++)
@@ -43,7 +62,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   }
   else
   {
-    balanceDur = balancer->balance(level); 
+    balanceDur = balancer->balance(level);
     execRes = balancer->execute(level);
   }
 
