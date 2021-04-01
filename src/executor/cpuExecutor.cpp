@@ -8,6 +8,8 @@
 #include <omp.h>
 #include <atomic>
 
+bool compTuple(std::tuple<int, int> i, std::tuple<int, int> j) { return (std::get<1>(i) > std::get<1>(j)); }
+
 TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
 {
   if (level == 0)
@@ -65,12 +67,25 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   }
   auto start = std::chrono::system_clock::now();
 
-#pragma omp parallel for shared(state, level, tasks) default(none) collapse(2) schedule(guided)
-  for (auto i = 0; i < tasks.size(); i++)
+std::vector<std::tuple<int, int>> sortedRows;
+for (auto task : tasks) {
+    for (auto i = task.row; i < task.row + task.rowCount; i++)
+    {
+    int row_length = state->adj_compact[i * state->p + state->p - 1];
+    if (row_length >= level)
+    {
+      sortedRows.push_back({i, row_length});
+    }
+    }
+}
+std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
+
+#pragma omp parallel for shared(state, level, sortedRows) default(none) collapse(2) schedule(dynamic, 10)
+  for (auto i = 0; i < sortedRows.size(); i++)
   {
     for (int col_node = 0; col_node < state->p; col_node++)
     {
-      testEdge(level, state, tasks[i].row, col_node, deletedEdges);
+      testEdge(level, state, std::get<0>(sortedRows[i]), col_node, deletedEdges);
     }
   }
 
@@ -133,8 +148,6 @@ void CPUExecutor::migrateEdges(int level, bool verbose)
     }
   }
 }
-
-bool compTuple(std::tuple<int, int> i, std::tuple<int, int> j) { return (std::get<1>(i) > std::get<1>(j)); }
 
 void CPUExecutor::calculateRowLengthMap(int level)
 {

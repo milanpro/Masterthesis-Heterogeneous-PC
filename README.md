@@ -23,6 +23,42 @@ x86_64: `docker build -f docker/Dockerfile -t milanpro/heterogpc .`
 
 ppc64le: `docker build -f docker/Dockerfile.ppc64le -t milanpro/heterogpc-ppc64le .`
 
+#### Delos NUMA Topology
+
+```
+Milan.Proell@delos:~$ nvidia-smi topo -m
+	GPU0	GPU1	GPU2	GPU3	CPU Affinity	NUMA Affinity
+GPU0	 X 	NV2	NV2	SYS	0-19,40-59	0
+GPU1	NV2	 X 	SYS	NV1	0-19,40-59	0
+GPU2	NV2	SYS	 X 	NV2	20-39,60-79	1
+GPU3	SYS	NV1	NV2	 X 	20-39,60-79	1
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+```
+
+```
+Milan.Proell@delos:~$ numactl -H
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59
+node 0 size: 772696 MB
+node 0 free: 427008 MB
+node 1 cpus: 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79
+node 1 size: 774135 MB
+node 1 free: 422708 MB
+node distances:
+node   0   1
+  0:  10  21
+  1:  21  10
+```
+
 #### TCGA Datasets
 Can be found in: `/home/Christopher.Hagedorn/genData`
 

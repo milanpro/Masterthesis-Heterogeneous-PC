@@ -69,9 +69,9 @@ int64_t Balancer::balance(int level)
     float max_rows_on_cpu_multiplier = 0.25;
 
     if (level == 2) {
-      max_rows_on_cpu_multiplier = 0.55;
+      max_rows_on_cpu_multiplier = 0.72;
     } else if (level == 3) {
-      max_rows_on_cpu_multiplier = 0.05;
+      max_rows_on_cpu_multiplier = 0.30;
     }
 
     int max_rows_on_cpu = (float)max_rows_on_cpu_multiplier * ompThreadCount;
@@ -127,9 +127,9 @@ int64_t Balancer::balance(int level)
 
       if (test_iterations_gpu[row] >= max_iterations_threshold && cpu_row_count < max_rows_on_cpu)
       {
-        if (balancedRows < row)
+        if (balancedRows < (row - 1))
         {
-          gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows});
+          gpuExecutor->enqueueSplitTask(SplitTask{balancedRows, row - balancedRows - 1});
           int deviceId = gpuList[balancedRows / rowsPerGPU];
           state->prefetchRows(balancedRows, row - balancedRows, deviceId);
         }

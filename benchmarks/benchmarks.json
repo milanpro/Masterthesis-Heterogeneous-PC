@@ -39,7 +39,7 @@
       "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
       "workstealing": false,
       "num_iterations": 5,
-      "OMPThreads" : 1,
+      "OMPThreads" : 40,
       "numa_node": 0
     },
     {
@@ -50,6 +50,39 @@
       "OMPThreads" : 1,
       "GPU_only": true,
       "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_pre_balanced_dynamic_scheduling.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_pre_balanced_dynamic_sorted_scheduling.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_pre_balanced_dynamic_sorted_scheduling_aligned.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_numa0_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 3,
+      "OMPThreads" : 40,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_gpu_only_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 3,
+      "GPU_only": true
     }
   ]
 }
