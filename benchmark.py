@@ -116,7 +116,7 @@ def plot_results(file, max_level):
     dur = mean_durations[i * cols_per_level:(i + 1) * cols_per_level]
     plot_frame.iloc[i] = dur.to_list()
     
-  ax = plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
+  ax = plot_frame.plot(xlabel="Level", ylabel="milliseconds", xticks= np.arange(0,levels, 1))
   ax.get_figure().savefig(pathlib.Path("figures", file.replace(".csv", ".svg")))
 
 def plot_benchmark(benchmark):

@@ -107,12 +107,12 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
 
   checkCudaErrors(cudaFree(rows));
   
-  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
   if (verbose)
   {
-    std::cout << "\tGPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+    std::cout << "\tGPU is done. Time: " << duration << " ms." << std::endl;
   }
   return TestResult{duration, (int)(state->p * (state->p - 1L)) / 2};
 }

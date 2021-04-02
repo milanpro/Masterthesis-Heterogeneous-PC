@@ -47,7 +47,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     execRes = balancer->execute(level);
   }
 
-  auto levelDur = std::chrono::duration_cast<std::chrono::microseconds>(
+  auto levelDur = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::system_clock::now() - start)
                       .count();
 
@@ -75,13 +75,13 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
     levelMetrics.push_back(metric);
   }
 
-  auto executionDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+  auto executionDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
                                std::chrono::system_clock::now() - start)
                                .count();
 
   if (verbose)
   {
-    std::cout << "Execution duration: " << executionDuration << " \u03BCs." << std::endl;
+    std::cout << "Execution duration: " << executionDuration << " ms." << std::endl;
   }
 
   int nrEdges = printSepsets(state, showSepsets);

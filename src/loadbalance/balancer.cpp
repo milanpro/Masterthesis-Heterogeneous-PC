@@ -146,12 +146,12 @@ int64_t Balancer::balance(int level)
       state->prefetchRows(balancedRows, variableCount - balancedRows, deviceId);
     }
   }
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::system_clock::now() - start)
                       .count();
   if (verbose)
   {
-    std::cout << "Balanced " << cpuExecutor->tasks.size() << " rows on the CPU and " << variableCount - cpuExecutor->tasks.size() << " rows on the GPU in " << duration << " \u03BCs." << std::endl;
+    std::cout << "Balanced " << cpuExecutor->tasks.size() << " rows on the CPU and " << variableCount - cpuExecutor->tasks.size() << " rows on the GPU in " << duration << " ms." << std::endl;
   }
   return duration;
 }
@@ -190,7 +190,7 @@ if (level != 0) {
   if (verbose)
   {
     std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
-              << duration << " \u03BCs.\n"
+              << duration << " ms.\n"
               << std::endl;
   }
   return {resCPU, resGPU};
@@ -233,7 +233,7 @@ if (level != 0) {
   if (verbose)
   {
     std::cout << "Order " << level << " finished with " << resCPU.tests + resGPU.tests << " tests in "
-              << duration << " \u03BCs.\n"
+              << duration << " ms.\n"
               << std::endl;
   }
   return {resCPU, resGPU};

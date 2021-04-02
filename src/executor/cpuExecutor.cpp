@@ -48,13 +48,13 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
 
   state->gpu_done = edge_done;
 
-  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
   if (verbose)
   {
     std::cout
-        << "\tCPU is done. Time: " << (int)duration << " \u03BCs. Edges stolen: " << edges_done << std::endl;
+        << "\tCPU is done. Time: " << (int)duration << " ms. Edges stolen: " << edges_done << std::endl;
   }
   return TestResult{duration, 0};
 }
@@ -89,12 +89,12 @@ std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
     }
   }
 
-  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
   if (verbose)
   {
-    std::cout << "\tCPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+    std::cout << "\tCPU is done. Time: " << duration << " ms." << std::endl;
   }
   return TestResult{duration, 0};
 }
