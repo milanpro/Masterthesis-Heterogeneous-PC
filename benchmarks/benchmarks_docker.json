@@ -2,29 +2,75 @@
   "benchmarks": [
     {
       "csv_file": "benchmark_workstealing.csv",
-      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
       "workstealing": true,
       "num_iterations": 5
     },
     {
       "csv_file": "benchmark_gpu_only.csv",
-      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
       "workstealing": false,
       "num_iterations": 5,
       "GPU_only": true
     },
     {
       "csv_file": "benchmark_pre_balanced.csv",
-      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
       "workstealing": false,
       "num_iterations": 5
     },
     {
       "csv_file": "benchmark_cpu_only.csv",
-      "input_file": "/usr/src/project/data/cooling_house.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
       "workstealing": false,
       "num_iterations": 5,
       "CPU_only": true
+    },
+    {
+      "csv_file": "benchmark_workstealing_numa0.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 5,
+      "OMPThreads" : 40,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_pre_balanced_numa0.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "OMPThreads" : 40,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_gpu_only_numa0.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-1000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 5,
+      "OMPThreads" : 1,
+      "GPU_only": true,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_workstealing_numa0_10000.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-10000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "OMPThreads" : 40,
+      "numa_node": 0
+    },
+    {
+      "csv_file": "benchmark_gpu_only_10000.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-10000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1,
+      "GPU_only": true
+    },
+    {
+      "csv_file": "benchmark_prebalanced_10000.csv",
+      "input_file": "/hpi/fs00/home/milan.proell/TCGA-GBM-10000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1
     }
   ]
 }
