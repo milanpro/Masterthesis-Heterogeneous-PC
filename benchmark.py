@@ -107,21 +107,20 @@ def execute_missing_benchmarks(benchmarks):
 
 def plot_results(file, max_level):
   csv_path = pathlib.Path(working_directory, file)
-  print(csv_path)
   results = pd.read_csv(csv_path)
 
   edges = results.iloc[:,2]
   if (not (edges[0] == edges).all()):
     print("Edges are not equal in every execution. Something went wrong")
     exit(-1)
-  print(f'GPUs: {results.iloc[0,0]} OMP Threads: {results.iloc[0,1]}')
+  gpus_text = f'GPUs: {results.iloc[0,0]} OMP Threads: {results.iloc[0,1]}'
 
   cols_per_level = 4
   levels = max_level + 1
   durations = results.iloc[:,3:(levels * cols_per_level) + 4]
   mean_durations = durations.mean()
 
-  print(f'Mean execution duration: {mean_durations[-1]}')
+  duration_text = f'Mean execution duration: {mean_durations[-1]}'
   plot_frame = pd.DataFrame(index=np.arange(0, levels), columns=["execution", "balancing", "cpu", "gpu", ])
 
   for i in range(levels):
@@ -129,10 +128,18 @@ def plot_results(file, max_level):
     plot_frame.iloc[i] = dur.to_list()
     
   ax = plot_frame.plot(xlabel="Level", ylabel="milliseconds", xticks= np.arange(0,levels, 1))
-  ax.get_figure().savefig(pathlib.Path("figures", file.replace(".csv", ".svg")))
+  fig = ax.get_figure()
+  fig.suptitle(str(csv_path) + "\n" + gpus_text + "\n" + duration_text, y = 1.1, ha = 'center')
+  fig.savefig(pathlib.Path(working_directory.replace("benchmarks", "figures"), file.replace(".csv", ".svg")), bbox_inches = 'tight')
 
 def plot_benchmark(benchmark):
   plot_results(benchmark["csv_file"], benchmark["max_level"])
+
+def plot_all(benchmarks):
+  for bench in benchmarks:
+    csv_path = pathlib.Path(working_directory, bench["csv_file"])
+    if csv_path.is_file():
+      plot_benchmark(bench)
 
 def interactive_plot_benchmark():
   benchmarks = read_benchmarks()
@@ -154,5 +161,3 @@ benchmarks = read_benchmarks()
 execute_missing_benchmarks(benchmarks)
 # %%
 interactive_plot_benchmark()
-
-# %%
