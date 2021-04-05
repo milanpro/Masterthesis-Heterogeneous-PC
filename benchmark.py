@@ -127,9 +127,9 @@ def plot_results(file, max_level):
     dur = mean_durations[i * cols_per_level:(i + 1) * cols_per_level]
     plot_frame.iloc[i] = dur.to_list()
     
-  ax = plot_frame.plot(xlabel="Level", ylabel="milliseconds", xticks= np.arange(0,levels, 1))
+  ax = plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
   fig = ax.get_figure()
-  fig.suptitle(str(csv_path) + "\n" + gpus_text + "\n" + duration_text, y = 1.1, ha = 'center')
+  fig.suptitle(str(csv_path) + "\n" + gpus_text + "\n" + duration_text + "\nDetected edges: " + str(edges[0]), y = 1.1, ha = 'center')
   fig.savefig(pathlib.Path(working_directory.replace("benchmarks", "figures"), file.replace(".csv", ".svg")), bbox_inches = 'tight')
 
 def plot_benchmark(benchmark):
