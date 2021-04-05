@@ -8,7 +8,7 @@
 #include <omp.h>
 #include <chrono>
 
-Balancer::Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heterogeneity, bool verbose) : gpuList(gpuList), state(state), verbose(verbose), heterogeneity(heterogeneity)
+Balancer::Balancer(std::vector<int> gpuList, MMState *state, std::tuple<float, float, float> row_multipliers, Heterogeneity heterogeneity, bool verbose) : gpuList(gpuList), state(state), verbose(verbose), heterogeneity(heterogeneity)
 {
   int maxGPUCount = getDeviceCount();
 
@@ -23,6 +23,10 @@ Balancer::Balancer(std::vector<int> gpuList, MMState *state, Heterogeneity heter
   int maxEdgeCount = (int)(state->p * (state->p - 1L) / 2);
   gpuExecutor = std::make_shared<GPUExecutor>(state, maxEdgeCount, gpuList);
   cpuExecutor = std::make_shared<CPUExecutor>(state);
+
+  rows_multiplier = std::get<0>(row_multipliers);
+  rows_multiplier_l2 = std::get<1>(row_multipliers);
+  rows_multiplier_l3 = std::get<2>(row_multipliers);
 }
 
 int64_t Balancer::balance(int level)
@@ -66,12 +70,12 @@ int64_t Balancer::balance(int level)
      * or binomialCoeff(row_neighbours, level) / num_threads
      **/
 
-    float max_rows_on_cpu_multiplier = 0.25;
+    float max_rows_on_cpu_multiplier = rows_multiplier;
 
     if (level == 2) {
-      max_rows_on_cpu_multiplier = 0.72;
+      max_rows_on_cpu_multiplier = rows_multiplier_l2;
     } else if (level == 3) {
-      max_rows_on_cpu_multiplier = 0.30;
+      max_rows_on_cpu_multiplier = rows_multiplier_l3;
     }
 
     int max_rows_on_cpu = (float)max_rows_on_cpu_multiplier * ompThreadCount;

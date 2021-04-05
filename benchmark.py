@@ -27,7 +27,10 @@ default_benchmark = {
   "print_sepsets" : False,
   "workstealing" : False,
   "num_iterations" : 3,
-  "numa_node": -1
+  "numa_node": -1,
+  "row-mult": 0.25,
+  "row-mult2": 0.72,
+  "row-mult3": 0.30
 }
 
 def read_benchmarks():
@@ -51,7 +54,16 @@ def execute_iterations(benchmark):
   args = []
   if benchmark["numa_node"] != -1:
     args = ["numactl", "-N", str(benchmark["numa_node"]), "-m", str(benchmark["numa_node"])]
-  args.extend([dir_path + "/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)])
+  args.extend([dir_path + "/build/src/heterogpc",
+               "-i", benchmark["input_file"],
+               "-a", str(benchmark["alpha"]),
+               "-o", str(benchmark["observations"]),
+               "-m", str(benchmark["max_level"]),
+               "-t" , str(benchmark["OMPThreads"]),
+               "--csv-export", str(csv_path),
+               "--row-mult", str(benchmark["row-mult"]),
+               "--row-mult2", str(benchmark["row-mult2"]),
+               "--row-mult3", str(benchmark["row-mult3"])])
   if (benchmark["correlation"]):
     args.append("--corr")
   if (benchmark["verbose"]):
@@ -122,23 +134,25 @@ def plot_results(file, max_level):
 def plot_benchmark(benchmark):
   plot_results(benchmark["csv_file"], benchmark["max_level"])
 
+def interactive_plot_benchmark():
+  benchmarks = read_benchmarks()
+  prompt = "Which benchmark should be plotted?\n"
+  for i, bench in enumerate(benchmarks):
+    csv_path = pathlib.Path(working_directory, bench["csv_file"])
+    if csv_path.is_file():
+      prompt += "\t" + str(i) + ". " + bench["csv_file"] + "\n"
+  i = int(input(prompt))
+  plot_benchmark(benchmarks[i])
 
+# %%
+working_directory = "benchmarks_delos"
+# %%
+working_directory = "benchmarks_ac922"
 # %%
 benchmarks = read_benchmarks()
 # %%
 execute_missing_benchmarks(benchmarks)
 # %%
-plot_benchmark(benchmarks[0])
-# %%
-plot_benchmark(benchmarks[1])
-# %%
-plot_benchmark(benchmarks[2])
-# %%
-plot_benchmark(benchmarks[3])
-# %%
-plot_benchmark(benchmarks[4])
-# %%
-plot_benchmark(benchmarks[5])
-# %%
-plot_benchmark(benchmarks[6])
+interactive_plot_benchmark()
+
 # %%

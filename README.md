@@ -59,6 +59,20 @@ node   0   1
   1:  21  10
 ```
 
+#### Download Benchmarks and Logs
+
+Delos:
+
+`rsync -aP "delos:~/Masterthesis-Heterogeneous-PC/benchmarks/*" ./benchmarks_delos`
+
+`rsync -aP "delos:~/Masterthesis-Heterogeneous-PC/logs/*" ./logs_delos`
+
+AC922:
+
+`rsync -aP "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/benchmarks/*" ./benchmarks_ac922`
+
+`rsync -aP "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/logs/*" ./logs_ac922`
+
 #### TCGA Datasets
 Can be found in: `/home/Christopher.Hagedorn/genData`
 

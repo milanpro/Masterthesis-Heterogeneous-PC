@@ -1,5 +1,4 @@
 #include "../util/cuda_util.cuh"
-#include "../loadbalance/balancer.hpp"
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
@@ -54,7 +53,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   return {levelDur, balanceDur, execRes};
 }
 
-void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool workstealing, std::string csvExportFile, int heterogeneity, bool showSepsets)
+void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool workstealing, std::string csvExportFile, Balancer balancer, bool showSepsets)
 {
 
   if (verbose)
@@ -65,8 +64,6 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
   auto start = std::chrono::system_clock::now();
   state->adviceReadonlyCor(gpuList);
   state->memAdvise(gpuList);
-
-  auto balancer = Balancer(gpuList, state, static_cast<Heterogeneity>(heterogeneity), verbose);
 
   std::vector<LevelMetrics> levelMetrics;
   for (int lvl = 0; lvl <= state->maxLevel; lvl++)
