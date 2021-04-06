@@ -31,7 +31,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   if (level != 0)
   {
     std::ofstream csvFile;
-    csvFile.open("" + level + "test_iteration_map.csv", std::ios::app | std::ios::out);
+    csvFile.open(std::to_string(level) + "test_iteration_map.csv", std::ios::app | std::ios::out);
 
     for (int row = 0; row < state->p; row++)
     {
@@ -40,7 +40,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
       {
         size_t row_test_count = level > 1 ? binomialCoeff(row_length - 1, level) : row_length - 1;
         int test_iterations_gpu = std::ceil((float)row_test_count / (float)NUMTHREADS);
-        csvFile << row_test_count << "," << test_iterations_gpu << std::endl;
+        csvFile << row_length << "," << row_test_count << "," << test_iterations_gpu << std::endl;
       }
     }
     csvFile.close();
