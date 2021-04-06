@@ -63,9 +63,28 @@ node   0   1
 Can be found in: `/home/Christopher.Hagedorn/genData`
 
 `/home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc --corr -i "/home/Christopher.Hagedorn/genData/TCGA-GBM-100-cor.csv" -o 3190 -v -t 80`
- 
+#### Other Paper Datasets
+In `/home/Christopher.Hagedorn/PC-Alg-Data`:
+
+```
+1.1M	./coolingData.csv
+2.7M	./alarm.csv
+216K	./sachs.csv
+100K	./earthquake.csv
+496K	./NCI-60.csv
+13M	./DREAM5-Insilico.csv
+128M	./munin.csv
+708K	./BR51.csv
+59M	./link20k.csv
+3.0M	./Saureus.csv
+33M	./andes.csv
+1.5M	./MCC.csv
+5.9M	./Scerevisiae.csv
+35M	./arth150.csv
+```
+
 #### Debugging
-/usr/local/cuda/bin/cuda-gdb /home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc
+`/usr/local/cuda/bin/cuda-gdb /home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc`
 
 #### Bugs
 https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded
@@ -75,7 +94,7 @@ Prevent threading segfault : `export OPENBLAS_NUM_THREADS=1`
 #### Balancing ideas
 
 ```
-      float row_size = (float)row_length / (float)(variableCount - 1);
-      float cpu_row_count = cpuExecutor->tasks.size();
-      if (row_size < 0.3f || (row_size < 0.4f && (variableCount - row) <= ompThreadCount - cpu_row_count))
+float row_size = (float)row_length / (float)(variableCount - 1);
+float cpu_row_count = cpuExecutor->tasks.size();
+if (row_size < 0.3f || (row_size < 0.4f && (variableCount - row) <= ompThreadCount - cpu_row_count))
 ```

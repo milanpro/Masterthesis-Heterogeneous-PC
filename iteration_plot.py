@@ -5,6 +5,8 @@ import pathlib
 # %%
 working_dir = pathlib.Path("iteration_count_data/TCGA-GBM-1000")
 # %%
+working_dir = pathlib.Path("iteration_count_data/MCC")
+# %%
 files = ["1test_iteration_map.csv", "2test_iteration_map.csv", "3test_iteration_map.csv", "4test_iteration_map.csv"]
 files = [working_dir / pathlib.Path(i) for i in files]
 # %% Iterations BoxPlot
