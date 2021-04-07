@@ -93,3 +93,66 @@ Prevent threading segfault : `export OPENBLAS_NUM_THREADS=1`
       float cpu_row_count = cpuExecutor->tasks.size();
       if (row_size < 0.3f || (row_size < 0.4f && (variableCount - row) <= ompThreadCount - cpu_row_count))
 ```
+
+#### AC922 Power9 Findings
+
+https://on-demand.gputechconf.com/gtc/2018/presentation/s8430-everything-you-need-to-know-about-unified-memory.pdf
+https://www.olcf.ornl.gov/wp-content/uploads/2018/03/ORNL_workshop_mar2018.pdf
+
+#### AC922 NUMA Topology
+
+```
+[milan.proell@ac922-02 ~]$ nvidia-smi topo -m
+	GPU0	GPU1	GPU2	GPU3	mlx5_0	mlx5_1	mlx5_2	mlx5_3	mlx5_4	mlx5_5	CPU Affinity	NUMA Affinity
+GPU0	 X 	NV3	SYS	SYS	NODE	NODE	SYS	SYS	SYS	SYS	0-63	0
+GPU1	NV3	 X 	SYS	SYS	NODE	NODE	SYS	SYS	SYS	SYS	0-63	0
+GPU2	SYS	SYS	 X 	NV3	SYS	SYS	NODE	NODE	NODE	NODE	64-127	8
+GPU3	SYS	SYS	NV3	 X 	SYS	SYS	NODE	NODE	NODE	NODE	64-127	8
+mlx5_0	NODE	NODE	SYS	SYS	 X 	PIX	SYS	SYS	SYS	SYS
+mlx5_1	NODE	NODE	SYS	SYS	PIX	 X 	SYS	SYS	SYS	SYS
+mlx5_2	SYS	SYS	NODE	NODE	SYS	SYS	 X 	PIX	NODE	NODE
+mlx5_3	SYS	SYS	NODE	NODE	SYS	SYS	PIX	 X 	NODE	NODE
+mlx5_4	SYS	SYS	NODE	NODE	SYS	SYS	NODE	NODE	 X 	PIX
+mlx5_5	SYS	SYS	NODE	NODE	SYS	SYS	NODE	NODE	PIX	 X
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+```
+
+```
+[milan.proell@ac922-02 ~]$ numactl -H
+available: 6 nodes (0,8,252-255)
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63
+node 0 size: 257716 MB
+node 0 free: 239932 MB
+node 8 cpus: 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127
+node 8 size: 261728 MB
+node 8 free: 244415 MB
+node 252 cpus:
+node 252 size: 32256 MB
+node 252 free: 30807 MB
+node 253 cpus:
+node 253 size: 32256 MB
+node 253 free: 30823 MB
+node 254 cpus:
+node 254 size: 32256 MB
+node 254 free: 30808 MB
+node 255 cpus:
+node 255 size: 32256 MB
+node 255 free: 30823 MB
+node distances:
+node   0   8  252  253  254  255
+  0:  10  40  80  80  80  80
+  8:  40  10  80  80  80  80
+ 252:  80  80  10  80  80  80
+ 253:  80  80  80  10  80  80
+ 254:  80  80  80  80  10  80
+ 255:  80  80  80  80  80  10
+ ```
