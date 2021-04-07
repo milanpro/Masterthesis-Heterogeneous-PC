@@ -15,6 +15,7 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
 
   int *rows;
   int row_count = 0;
+  checkCudaErrors(cudaSetDevice(gpuList[0]));
   checkCudaErrors(cudaMallocManaged(&rows, (uint64_t)sizeof(int) * state->p));
 
   for (auto task : tasks)
