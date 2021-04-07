@@ -13,7 +13,7 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
 
   extern __shared__ double pVals[];
   size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y];
-  if (row_neighbours > blockIdx.y && row_neighbours >= 1 && col_node < state.p && !state.node_status[row_node * state.p + col_node])
+  if (row_neighbours > blockIdx.y && row_neighbours >= 1 && col_node < state.p && !state.node_status[row_node * state.p + col_node] && col_node != row_node)
   {
     size_t subIndex = 0;
     for (size_t offset = threadIdx.x; offset < row_neighbours; offset += blockDim.x)
@@ -37,7 +37,9 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
         for (size_t i = 0; i < blockDim.x && i < row_neighbours; ++i)
         {
           double pVal = pVals[i];
-          if (state.node_status[row_node * state.p + col_node]) {
+
+          if (state.node_status[row_node * state.p + col_node])
+          {
             break;
           }
           if (offset + i < state.p && pVal >= state.alpha)
@@ -106,7 +108,7 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
     double res1[lvlSize][lvlSize];
     // Determine sepsets to work on
     size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y]; // get actual id
-    if (state.node_status[row_node * state.p + col_node] == edge_done) {
+    if (row_node == col_node || state.node_status[row_node * state.p + col_node] == edge_done) {
       return;
     }
     int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
@@ -155,7 +157,9 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
       pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
       double r = -SubmatPInv[0][1] / sqrt(SubmatPInv[0][0] * SubmatPInv[1][1]);
       double pVal = GPU::calcPValue(r, state.observations);
-      if (state.node_status[row_node * state.p + col_node] == edge_done) {
+
+      if (state.node_status[row_node * state.p + col_node] == edge_done)
+      {
         return;
       }
       if (pVal >= state.alpha)
@@ -199,6 +203,6 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
   }
 }
 
-template __global__ void testRowWorkstealingLN<4,2>(MMState state, int *rows, int start_row, int max_row_count);
+template __global__ void testRowWorkstealingLN<4, 2>(MMState state, int *rows, int start_row, int max_row_count);
 
-template __global__ void testRowWorkstealingLN<5,3>(MMState state, int *rows, int start_row, int max_row_count);
+template __global__ void testRowWorkstealingLN<5, 3>(MMState state, int *rows, int start_row, int max_row_count);

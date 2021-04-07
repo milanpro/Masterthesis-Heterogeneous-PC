@@ -84,6 +84,7 @@ int main(int argc, char const *argv[])
 #ifdef NDEBUG
     bool verbose = vm.count("verbose") != 0;
 #else
+    std::cout << "Debug mode, verbose is on." << std::endl;
     bool verbose = true;
 #endif
 

@@ -13,6 +13,33 @@
 
 typedef std::tuple<int64_t, int64_t, std::tuple<TestResult, TestResult>> LevelMetrics;
 
+void assertAdjCompactIsAdj(MMState *state)
+{
+  int active_edges = 0;
+  for (int i = 0; i < state->p; i++)
+  {
+    int row_length = 0;
+    for (int j = 0; j < state->p; j++)
+    {
+      int deletedAdj = state->adj[i * state->p + j];
+      int deletedAdjComp = 0;
+      for (int k = 0; k < state->adj_compact[i * state->p + state->p - 1]; k++)
+      {
+        if (state->adj_compact[i * state->p + k] == j)
+        {
+          deletedAdjComp = 1;
+          row_length++;
+          break;
+        }
+      }
+      assert(deletedAdj == deletedAdjComp);
+    }
+    assert(state->adj_compact[i * state->p + state->p - 1] == row_length);
+    active_edges += row_length;
+  }
+  std::cout << "Active edges: " << active_edges << std::endl;
+}
+
 LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool verbose, bool workstealing, Balancer *balancer)
 {
   auto start = std::chrono::system_clock::now();
@@ -25,16 +52,21 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     {
       callCompact(state, gpuList[i], i, numberOfGPUs, device_row_count);
     }
+
+  #ifndef NDEBUG
+    assertAdjCompactIsAdj(state);
+  #endif
   }
 
-    if (verbose)
-      std::cout << "Max row length: " << state->max_adj[0] << std::endl;
+  if (verbose)
+    std::cout << "Max row length: " << state->max_adj[0] << std::endl;
 
   std::tuple<TestResult, TestResult> execRes;
   int64_t balanceDur = 0;
   if (workstealing)
   {
-    if (level == 0) {
+    if (level == 0)
+    {
       balancer->gpuExecutor->enqueueSplitTask(SplitTask{0, (int)state->p});
     }
     for (int i = 0; i < numberOfGPUs; i++)
@@ -45,7 +77,7 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
   }
   else
   {
-    balanceDur = balancer->balance(level); 
+    balanceDur = balancer->balance(level);
     execRes = balancer->execute(level);
   }
 
@@ -131,7 +163,7 @@ int printSepsets(MMState *state, bool verbose)
                                (j * state->maxCondSize) + k];
             if (current_sepset_node == -2)
             {
-              std::cout << "Separation from " << i << " to " << j << std::endl;
+              std::cout << "Separation from " << i << " to " << j << "\n";
               break;
             }
             else if (current_sepset_node == -1)
@@ -147,7 +179,7 @@ int printSepsets(MMState *state, bool verbose)
           if (sepset_string != "")
           {
             std::cout << "Separation from " << i << " to " << j << " via "
-                      << sepset_string << std::endl;
+                      << sepset_string << "\n";
           }
         }
       }

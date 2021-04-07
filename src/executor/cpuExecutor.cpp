@@ -30,7 +30,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
       for (int i = row_length - 1; i >= 0; i--)
       {
         auto col_node = state->adj_compact[row_node * state->p + i];
-        if (state->node_status[row_node * state->p + col_node] != edge_done)
+        if (col_node != row_node && state->node_status[row_node * state->p + col_node] != edge_done)
         {
           if (level == 1)
           {
@@ -103,7 +103,7 @@ void CPUExecutor::migrateEdges(int level, bool verbose)
 {
   if (verbose)
   {
-    std::cout << "Migrating CPU edges..." << std::endl;
+    std::cout << "Migrating " << deletedEdges->size_approx() << " CPU edges..." << std::endl;
   }
 
   DeletedEdge delEdge;

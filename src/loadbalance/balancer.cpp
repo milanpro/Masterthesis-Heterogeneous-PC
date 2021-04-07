@@ -58,7 +58,8 @@ int64_t Balancer::balance(int level)
     // GPU only execution
     gpuExecutor->enqueueSplitTask(SplitTask{0, variableCount});
     balancedOnGPU = variableCount;
-    for (int i = 0; i < gpuList.size(); i++) {
+    for (int i = 0; i < gpuList.size(); i++)
+    {
       state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
     }
   }
@@ -73,9 +74,12 @@ int64_t Balancer::balance(int level)
 
     float max_rows_on_cpu_multiplier = rows_multiplier;
 
-    if (level == 2) {
+    if (level == 2)
+    {
       max_rows_on_cpu_multiplier = rows_multiplier_l2;
-    } else if (level == 3) {
+    }
+    else if (level == 3)
+    {
       max_rows_on_cpu_multiplier = rows_multiplier_l3;
     }
 
@@ -87,7 +91,6 @@ int64_t Balancer::balance(int level)
     int max_iterations_idx = max_rows_on_cpu < variableCount ? max_rows_on_cpu : std::ceil(variableCount * max_rows_on_cpu_multiplier);
 
     auto max_row_length = std::get<1>(cpuExecutor->rowLengthMap[max_iterations_idx]);
-
 
     // Start balancing
     for (int row = 0; row < variableCount; row++)
@@ -157,15 +160,19 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
   TestResult resGPU = resGPUFuture.get();
   TestResult resCPU = resCPUFuture.get();
 
-if (level != 0) {
-  cpuExecutor->migrateEdges(level, verbose);
-  int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
-  for (int i = 0; i < gpuList.size(); i++) {
-    state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+  if (level != 0)
+  {
+    cpuExecutor->migrateEdges(level, verbose);
+    int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
+    for (int i = 0; i < gpuList.size(); i++)
+    {
+      state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+    }
   }
-} else if (heterogeneity == Heterogeneity::CPUOnly) {
-  cpuExecutor->migrateEdges(level, verbose);
-}
+  else if (heterogeneity == Heterogeneity::CPUOnly)
+  {
+    cpuExecutor->migrateEdges(level, verbose);
+  }
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
   if (verbose)
@@ -177,6 +184,28 @@ if (level != 0) {
   return {resCPU, resGPU};
 }
 
+void assertNodeStatus(MMState *state, int level)
+{
+  if (level > 0)
+  {
+    bool edge_not_done = level % 2 == 0;
+    for (int i = 0; i < state->p; i++)
+    {
+      for (int j = 0; j < state->p; j++)
+      {
+        bool status = state->node_status[i * state->p + j];
+        if (state->adj[i * state->p + j] == 1 && state->adj[i * state->p + state->p - 1] >= level - 1 && i != j)
+        {
+          if (edge_not_done != status)
+          {
+            std::cout << "row " << i << " col " << j << std::endl;
+          }
+          assert(edge_not_done == status);
+        }
+      }
+    }
+  }
+}
 
 std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
 {
@@ -185,6 +214,10 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
   {
     std::cout << "Start workstealing execution..." << std::endl;
   }
+
+#ifndef NDEBUG
+  assertNodeStatus(state, level);
+#endif
 
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
@@ -200,13 +233,15 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
   TestResult resGPU = resGPUFuture.get();
   TestResult resCPU = resCPUFuture.get();
 
-if (level != 0) {
-  cpuExecutor->migrateEdges(level, verbose);
-  int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
-  for (int i = 0; i < gpuList.size(); i++) {
-    state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+  if (level != 0)
+  {
+    cpuExecutor->migrateEdges(level, verbose);
+    int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
+    for (int i = 0; i < gpuList.size(); i++)
+    {
+      state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
+    }
   }
-}
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
   if (verbose)
