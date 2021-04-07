@@ -116,7 +116,7 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
     std::cout << "Execution duration: " << executionDuration << " ms." << std::endl;
   }
 
-  int nrEdges = printSepsets(state, showSepsets);
+  int nrEdges = printSepsets(state, showSepsets, verbose);
 
   if (csvExportFile != "")
   {
@@ -144,7 +144,7 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
   }
 }
 
-int printSepsets(MMState *state, bool verbose)
+int printSepsets(MMState *state, bool showSepsets, bool verbose)
 {
   int nrEdges = 0;
   for (int i = 0; i < state->p; i++)
@@ -153,7 +153,7 @@ int printSepsets(MMState *state, bool verbose)
     {
       if (!state->adj[i * state->p + j])
       {
-        if (verbose)
+        if (showSepsets)
         {
           std::string sepset_string = "";
           for (int k = 0; k < state->maxCondSize; k++)

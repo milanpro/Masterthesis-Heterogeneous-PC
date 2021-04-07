@@ -6,4 +6,4 @@
 void calcSkeleton(
     MMState *state, std::vector<int> gpuList, bool verbose, bool workstealing, std::string csvExportFile, Balancer balancer, bool showSepsets);
 
-int printSepsets(MMState *state, bool verbose);
+int printSepsets(MMState *state, bool showSepsets, bool verbose);
