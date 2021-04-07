@@ -66,7 +66,7 @@ __global__ void testRowL1(MMState state, int *rows, int start_row, int max_row_c
           {
             if (row_node < col_node)
             {
-              if (atomicCAS_system(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
+              if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
               {
                 state.adj[row_node * state.p + col_node] = 0;
                 state.adj[col_node * state.p + row_node] = 0;
@@ -78,7 +78,7 @@ __global__ void testRowL1(MMState state, int *rows, int start_row, int max_row_c
             }
             else
             {
-              if (atomicCAS_system(&state.lock[(state.p * col_node) + row_node], 0, 1) == 0)
+              if (atomicCAS(&state.lock[(state.p * col_node) + row_node], 0, 1) == 0)
               {
                 state.adj[row_node * state.p + col_node] = 0;
                 state.adj[col_node * state.p + row_node] = 0;
@@ -93,6 +93,8 @@ __global__ void testRowL1(MMState state, int *rows, int start_row, int max_row_c
         }
       }
       __syncthreads();
+      if (state.adj[row_node * state.p + col_node] == 0)
+        break;
     }
   }
 }
@@ -171,8 +173,8 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
         {
           if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
           {
-            state.adj[state.p * row_node + col_node] = 0.f;
-            state.adj[state.p * col_node + row_node] = 0.f;
+            state.adj[state.p * row_node + col_node] = 0;
+            state.adj[state.p * col_node + row_node] = 0;
             state.pMax[state.p * row_node + col_node] = pVal;
             for (int j = 0; j < kLvlSizeSmall; ++j)
             {
@@ -185,8 +187,8 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
         {
           if (atomicCAS(&state.lock[(state.p * col_node) + row_node], 0, 1) == 0)
           {
-            state.adj[state.p * row_node + col_node] = 0.f;
-            state.adj[state.p * col_node + row_node] = 0.f;
+            state.adj[state.p * row_node + col_node] = 0;
+            state.adj[state.p * col_node + row_node] = 0;
             state.pMax[state.p * col_node + row_node] = pVal;
             for (int j = 0; j < kLvlSizeSmall; ++j)
             {
@@ -197,7 +199,6 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
         }
       }
     }
-    __syncthreads();
   }
 }
 
