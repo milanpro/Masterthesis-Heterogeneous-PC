@@ -6,7 +6,7 @@
 #include <chrono>
 #include <iostream>
 
-TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLength, bool verbose)
+TestResult GPUExecutor::executeLevel(int level, bool workstealing, bool verbose)
 {
   if (tasks.size() == 0)
   {
@@ -18,12 +18,15 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
   checkCudaErrors(cudaSetDevice(gpuList[0]));
   checkCudaErrors(cudaMallocManaged(&rows, (uint64_t)sizeof(int) * state->p));
 
+  int maxRowLength = 0;
   for (auto task : tasks)
   {
     for (auto i = task.row; i < task.row + task.rowCount; i++)
     {
-      if (state->adj_compact[i * state->p + state->p - 1] >= level) {
+      int row_length = state->adj_compact[i * state->p + state->p - 1];
+      if (row_length >= level) {
         rows[row_count] = i;
+        maxRowLength = std::max(maxRowLength, row_length);
         row_count++;
       }
     }
@@ -42,7 +45,7 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, int maxRowLen
   int rowsPerGPU = (int)std::ceil((float)row_count / (float)numberOfGPUs);
 
   if (verbose) {
-    std::cout << "\tRows per GPU: " << rowsPerGPU << " Maximum row length: " << maxRowLength << std::endl;
+    std::cout << "\tRows per GPU: " << rowsPerGPU << " Maximum GPU row length: " << maxRowLength << std::endl;
   }
 
   if (level == 0)

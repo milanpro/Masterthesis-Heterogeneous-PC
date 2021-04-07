@@ -5,7 +5,7 @@ struct GPUExecutor : Executor
   int maxEdgeCount;
   std::vector<int> gpuList;
   MMState *state;
-  TestResult executeLevel(int level, bool workstealing, int maxRowLength, bool verbose = false);
+  TestResult executeLevel(int level, bool workstealing, bool verbose = false);
 
   GPUExecutor(MMState *state, int maxEdgeCount, std::vector<int> gpuList)
       : state(state), maxEdgeCount(maxEdgeCount), gpuList(gpuList)

@@ -27,6 +27,9 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     }
   }
 
+    if (verbose)
+      std::cout << "Max row length: " << state->max_adj[0] << std::endl;
+
   std::tuple<TestResult, TestResult> execRes;
   int64_t balanceDur = 0;
   if (workstealing)
