@@ -93,10 +93,10 @@ TestResult GPUExecutor::executeLevel(int level, bool workstealing, bool verbose)
         testRowL1<<<grid, block, sizeof(double) * numthreads>>>(*state, rows, startRow, row_count);
         break;
       case 2:
-        testRowLN<4, 2><<<grid, block>>>(*state, rows, startRow, row_count);
+        testRowLN<4, 2><<<grid, block, sizeof(bool)>>>(*state, rows, startRow, row_count);
         break;
       case 3:
-        testRowLN<5, 3><<<grid, block>>>(*state, rows, startRow, row_count);
+        testRowLN<5, 3><<<grid, block, sizeof(bool)>>>(*state, rows, startRow, row_count);
         break;
       }
     }

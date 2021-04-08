@@ -106,12 +106,15 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
   {
     return;
   }
-
   size_t row_node = rows[start_row + blockIdx.x];
   size_t row_count = state.adj_compact[row_node * state.p + state.p - 1];
   if (row_count > blockIdx.y && // col_node available
       row_count >= kLvlSizeSmall)
   {
+    __shared__ bool found;
+    if (threadIdx.x == 0) {
+      found = false;
+    }
     double Submat[lvlSize][lvlSize];
     double SubmatPInv[lvlSize][lvlSize];
     int sepset_nodes[kLvlSizeSmall];
@@ -169,6 +172,7 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
       double pVal = GPU::calcPValue(r, state.observations);
       if (pVal >= state.alpha)
       {
+        found = true;
         if (row_node < col_node)
         {
           if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
@@ -197,6 +201,9 @@ __global__ void testRowLN(MMState state, int *rows, int start_row, int max_row_c
             }
           }
         }
+      }
+      if (found) {
+        break;
       }
     }
   }
