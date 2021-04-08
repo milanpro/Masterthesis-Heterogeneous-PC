@@ -41,7 +41,7 @@ int64_t Balancer::balance(int level)
   gpuExecutor->cleanupSplitTasks();
 
   int variableCount = state->p;
-  int balancedRows = 0;
+  int balancedRows = -1;
   int balancedOnGPU = 0;
   int rowsPerGPU = (int)std::ceil((float)variableCount / (float)gpuList.size());
   if (
