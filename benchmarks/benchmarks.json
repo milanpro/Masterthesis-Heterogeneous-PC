@@ -73,7 +73,7 @@
       "csv_file": "benchmark_workstealing_numa0_10000.csv",
       "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
       "workstealing": true,
-      "num_iterations": 3,
+      "num_iterations": 1,
       "OMPThreads" : 40,
       "numa_node": 0
     },
@@ -81,8 +81,38 @@
       "csv_file": "benchmark_gpu_only_10000.csv",
       "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
       "workstealing": false,
-      "num_iterations": 3,
+      "num_iterations": 1,
       "GPU_only": true
+    },
+    {
+      "csv_file": "benchmark_gpu_only_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1,
+      "GPU_only": true,
+      "max_level": 1
+    },
+    {
+      "csv_file": "benchmark_workstealing_numa0_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "OMPThreads" : 40,
+      "numa_node": 0,
+      "max_level": 1
+    },
+    {
+      "csv_file": "benchmark_prebalanced_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1
+    },
+    {
+      "csv_file": "benchmark_prebalanced_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1,
+      "max_level": 1
     }
   ]
 }

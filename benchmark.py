@@ -27,7 +27,10 @@ default_benchmark = {
   "print_sepsets" : False,
   "workstealing" : False,
   "num_iterations" : 3,
-  "numa_node": -1
+  "numa_node": -1,
+  "row-mult": 0.25,
+  "row-mult2": 0.72,
+  "row-mult3": 0.30
 }
 
 def read_benchmarks():
@@ -51,7 +54,16 @@ def execute_iterations(benchmark):
   args = []
   if benchmark["numa_node"] != -1:
     args = ["numactl", "-N", str(benchmark["numa_node"]), "-m", str(benchmark["numa_node"])]
-  args.extend([dir_path + "/build/src/heterogpc", "-i", benchmark["input_file"], "-a", str(benchmark["alpha"]), "-o", str(benchmark["observations"]), "-m", str(benchmark["max_level"]), "-t" ,str(benchmark["OMPThreads"]), "--csv-export", str(csv_path)])
+  args.extend([dir_path + "/build/src/heterogpc",
+               "-i", benchmark["input_file"],
+               "-a", str(benchmark["alpha"]),
+               "-o", str(benchmark["observations"]),
+               "-m", str(benchmark["max_level"]),
+               "-t" , str(benchmark["OMPThreads"]),
+               "--csv-export", str(csv_path),
+               "--row-mult", str(benchmark["row-mult"]),
+               "--row-mult2", str(benchmark["row-mult2"]),
+               "--row-mult3", str(benchmark["row-mult3"])])
   if (benchmark["correlation"]):
     args.append("--corr")
   if (benchmark["verbose"]):
@@ -95,50 +107,57 @@ def execute_missing_benchmarks(benchmarks):
 
 def plot_results(file, max_level):
   csv_path = pathlib.Path(working_directory, file)
-  print(csv_path)
   results = pd.read_csv(csv_path)
 
   edges = results.iloc[:,2]
   if (not (edges[0] == edges).all()):
     print("Edges are not equal in every execution. Something went wrong")
     exit(-1)
-  print(f'GPUs: {results.iloc[0,0]} OMP Threads: {results.iloc[0,1]}')
+  gpus_text = f'GPUs: {results.iloc[0,0]} OMP Threads: {results.iloc[0,1]}'
 
   cols_per_level = 4
   levels = max_level + 1
   durations = results.iloc[:,3:(levels * cols_per_level) + 4]
   mean_durations = durations.mean()
 
-  print(f'Mean execution duration: {mean_durations[-1]}')
+  duration_text = f'Mean execution duration: {mean_durations[-1]}'
   plot_frame = pd.DataFrame(index=np.arange(0, levels), columns=["execution", "balancing", "cpu", "gpu", ])
 
   for i in range(levels):
     dur = mean_durations[i * cols_per_level:(i + 1) * cols_per_level]
     plot_frame.iloc[i] = dur.to_list()
     
-  ax = plot_frame.plot(xlabel="Level", ylabel="microseconds", xticks= np.arange(0,levels, 1))
-  ax.get_figure().savefig(pathlib.Path("figures", file.replace(".csv", ".svg")))
+  ax = plot_frame.plot(xlabel="Level", ylabel="milliseconds", xticks= np.arange(0,levels, 1))
+  fig = ax.get_figure()
+  fig.suptitle(str(csv_path) + "\n" + gpus_text + "\n" + duration_text, y = 1.1, ha = 'center')
+  fig.savefig(pathlib.Path(working_directory.replace("benchmarks", "figures"), file.replace(".csv", ".svg")), bbox_inches = 'tight')
 
 def plot_benchmark(benchmark):
   plot_results(benchmark["csv_file"], benchmark["max_level"])
 
+def plot_all(benchmarks):
+  for bench in benchmarks:
+    csv_path = pathlib.Path(working_directory, bench["csv_file"])
+    if csv_path.is_file():
+      plot_benchmark(bench)
 
+def interactive_plot_benchmark():
+  benchmarks = read_benchmarks()
+  prompt = "Which benchmark should be plotted?\n"
+  for i, bench in enumerate(benchmarks):
+    csv_path = pathlib.Path(working_directory, bench["csv_file"])
+    if csv_path.is_file():
+      prompt += "\t" + str(i) + ". " + bench["csv_file"] + "\n"
+  i = int(input(prompt))
+  plot_benchmark(benchmarks[i])
+
+# %%
+working_directory = "benchmarks_delos"
+# %%
+working_directory = "benchmarks_ac922"
 # %%
 benchmarks = read_benchmarks()
 # %%
 execute_missing_benchmarks(benchmarks)
 # %%
-plot_benchmark(benchmarks[0])
-# %%
-plot_benchmark(benchmarks[1])
-# %%
-plot_benchmark(benchmarks[2])
-# %%
-plot_benchmark(benchmarks[3])
-# %%
-plot_benchmark(benchmarks[4])
-# %%
-plot_benchmark(benchmarks[5])
-# %%
-plot_benchmark(benchmarks[6])
-# %%
+interactive_plot_benchmark()

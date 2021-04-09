@@ -10,7 +10,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
   checkCudaErrors(cudaMallocManaged(&cor, (uint64_t)sizeof(double) * p * p));
   checkCudaErrors(cudaMallocManaged(&pMax, (uint64_t)sizeof(double) * p * p));
-  checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(cuda::atomic<bool>) * p * p));
+  checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(bool) * p * p));
   checkCudaErrors(
       cudaMallocManaged(&sepSets, (uint64_t)sizeof(int) * p * p * maxCondSize));
   checkCudaErrors(

@@ -1,5 +1,4 @@
 #include "../util/cuda_util.cuh"
-#include "../loadbalance/balancer.hpp"
 #include "skeleton.hpp"
 #include "compact.cuh"
 #include <iostream>
@@ -14,6 +13,33 @@
 
 typedef std::tuple<int64_t, int64_t, std::tuple<TestResult, TestResult>> LevelMetrics;
 
+void assertAdjCompactIsAdj(MMState *state)
+{
+  int active_edges = 0;
+  for (int i = 0; i < state->p; i++)
+  {
+    int row_length = 0;
+    for (int j = 0; j < state->p; j++)
+    {
+      int deletedAdj = state->adj[i * state->p + j];
+      int deletedAdjComp = 0;
+      for (int k = 0; k < state->adj_compact[i * state->p + state->p - 1]; k++)
+      {
+        if (state->adj_compact[i * state->p + k] == j)
+        {
+          deletedAdjComp = 1;
+          row_length++;
+          break;
+        }
+      }
+      assert(deletedAdj == deletedAdjComp);
+    }
+    assert(state->adj_compact[i * state->p + state->p - 1] == row_length);
+    active_edges += row_length;
+  }
+  std::cout << "Active edges: " << active_edges << std::endl;
+}
+
 LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool verbose, bool workstealing, Balancer *balancer)
 {
   auto start = std::chrono::system_clock::now();
@@ -26,6 +52,10 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     {
       callCompact(state, gpuList[i], i, numberOfGPUs, device_row_count);
     }
+
+  #ifndef NDEBUG
+    assertAdjCompactIsAdj(state);
+  #endif
   }
 
   if (level != 0)
@@ -45,6 +75,9 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     }
     csvFile.close();
   }
+
+  if (verbose)
+    std::cout << "Max row length: " << state->max_adj[0] << std::endl;
 
   std::tuple<TestResult, TestResult> execRes;
   int64_t balanceDur = 0;
@@ -66,14 +99,14 @@ LevelMetrics calcLevel(MMState *state, std::vector<int> gpuList, int level, bool
     execRes = balancer->execute(level);
   }
 
-  auto levelDur = std::chrono::duration_cast<std::chrono::microseconds>(
+  auto levelDur = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::system_clock::now() - start)
                       .count();
 
   return {levelDur, balanceDur, execRes};
 }
 
-void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool workstealing, std::string csvExportFile, int heterogeneity, bool showSepsets)
+void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool workstealing, std::string csvExportFile, Balancer balancer, bool showSepsets)
 {
 
   if (verbose)
@@ -85,8 +118,6 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
   state->adviceReadonlyCor(gpuList);
   state->memAdvise(gpuList);
 
-  auto balancer = Balancer(gpuList, state, static_cast<Heterogeneity>(heterogeneity), verbose);
-
   std::vector<LevelMetrics> levelMetrics;
   for (int lvl = 0; lvl <= state->maxLevel; lvl++)
   {
@@ -94,16 +125,16 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
     levelMetrics.push_back(metric);
   }
 
-  auto executionDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+  auto executionDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
                                std::chrono::system_clock::now() - start)
                                .count();
 
   if (verbose)
   {
-    std::cout << "Execution duration: " << executionDuration << " \u03BCs." << std::endl;
+    std::cout << "Execution duration: " << executionDuration << " ms." << std::endl;
   }
 
-  int nrEdges = printSepsets(state, showSepsets);
+  int nrEdges = printSepsets(state, showSepsets, verbose);
 
   if (csvExportFile != "")
   {
@@ -131,7 +162,7 @@ void calcSkeleton(MMState *state, std::vector<int> gpuList, bool verbose, bool w
   }
 }
 
-int printSepsets(MMState *state, bool verbose)
+int printSepsets(MMState *state, bool showSepsets, bool verbose)
 {
   int nrEdges = 0;
   for (int i = 0; i < state->p; i++)
@@ -140,7 +171,7 @@ int printSepsets(MMState *state, bool verbose)
     {
       if (!state->adj[i * state->p + j])
       {
-        if (verbose)
+        if (showSepsets)
         {
           std::string sepset_string = "";
           for (int k = 0; k < state->maxCondSize; k++)
@@ -150,7 +181,7 @@ int printSepsets(MMState *state, bool verbose)
                                (j * state->maxCondSize) + k];
             if (current_sepset_node == -2)
             {
-              std::cout << "Separation from " << i << " to " << j << std::endl;
+              std::cout << "Separation from " << i << " to " << j << "\n";
               break;
             }
             else if (current_sepset_node == -1)
@@ -166,7 +197,7 @@ int printSepsets(MMState *state, bool verbose)
           if (sepset_string != "")
           {
             std::cout << "Separation from " << i << " to " << j << " via "
-                      << sepset_string << std::endl;
+                      << sepset_string << "\n";
           }
         }
       }

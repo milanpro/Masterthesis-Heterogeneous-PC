@@ -30,7 +30,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
       for (int i = row_length - 1; i >= 0; i--)
       {
         auto col_node = state->adj_compact[row_node * state->p + i];
-        if (state->node_status[row_node * state->p + col_node] != edge_done)
+        if (col_node != row_node && state->node_status[row_node * state->p + col_node] != edge_done)
         {
           if (level == 1)
           {
@@ -48,13 +48,13 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
 
   state->gpu_done = edge_done;
 
-  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
   if (verbose)
   {
     std::cout
-        << "\tCPU is done. Time: " << (int)duration << " \u03BCs. Edges stolen: " << edges_done << std::endl;
+        << "\tCPU is done. Time: " << (int)duration << " ms. Edges stolen: " << edges_done << std::endl;
   }
   return TestResult{duration, 0};
 }
@@ -67,18 +67,19 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   }
   auto start = std::chrono::system_clock::now();
 
-std::vector<std::tuple<int, int>> sortedRows;
-for (auto task : tasks) {
+  std::vector<std::tuple<int, int>> sortedRows;
+  for (auto task : tasks)
+  {
     for (auto i = task.row; i < task.row + task.rowCount; i++)
     {
-    int row_length = state->adj_compact[i * state->p + state->p - 1];
-    if (row_length >= level)
-    {
-      sortedRows.push_back({i, row_length});
+      int row_length = state->adj_compact[i * state->p + state->p - 1];
+      if (row_length >= level)
+      {
+        sortedRows.push_back({i, row_length});
+      }
     }
-    }
-}
-std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
+  }
+  std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
 
 #pragma omp parallel for shared(state, level, sortedRows) default(none) collapse(2) schedule(dynamic, 10)
   for (auto i = 0; i < sortedRows.size(); i++)
@@ -89,12 +90,12 @@ std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
     }
   }
 
-  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+  auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
                                             .count());
   if (verbose)
   {
-    std::cout << "\tCPU is done. Time: " << (int)duration << " \u03BCs." << std::endl;
+    std::cout << "\tCPU is done. Time: " << duration << " ms." << std::endl;
   }
   return TestResult{duration, 0};
 }
@@ -103,7 +104,7 @@ void CPUExecutor::migrateEdges(int level, bool verbose)
 {
   if (verbose)
   {
-    std::cout << "Migrating CPU edges..." << std::endl;
+    std::cout << "Migrating " << deletedEdges->size_approx() << " CPU edges..." << std::endl;
   }
 
   DeletedEdge delEdge;

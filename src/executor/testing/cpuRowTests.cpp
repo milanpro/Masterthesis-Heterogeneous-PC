@@ -48,7 +48,7 @@
             result.pMax = pVal;
             result.sepSet = {state->adj_compact[actual_col_node * p + subIndex]};
             eQueue->enqueue(result);
-            break;
+            return;
           }
         }
       }
@@ -128,7 +128,7 @@
             result.sepSet.push_back(sepset_nodes[j]);
           }
           eQueue->enqueue(result);
-          break;
+          return;
         }
       }
     }

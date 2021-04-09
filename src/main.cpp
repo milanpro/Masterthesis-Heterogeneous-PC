@@ -4,6 +4,7 @@
 #include "correlation/corOwn.cuh"
 #include "util/state.cuh"
 #include "independence/skeleton.hpp"
+#include "loadbalance/balancer.hpp"
 namespace po = boost::program_options;
 #include <iostream>
 #include <vector>
@@ -26,6 +27,9 @@ int main(int argc, char const *argv[])
         ("input-file,i", po::value<string>()->default_value(DEFAULT_INPUT_FILE), "input file")
         ("alpha,a", po::value<double>()->default_value(0.05), "alpha value")
         ("observations,o", po::value<int>(), "observation count")
+        ("row-mult", po::value<float>()->default_value(0.25), "maximum rows balanced multiplier level 0,1,4+")
+        ("row-mult2", po::value<float>()->default_value(0.65), "maximum rows balanced multiplier level 2")
+        ("row-mult3", po::value<float>()->default_value(0.25), "maximum rows balanced multiplier level 3")
         ("max-level,m", po::value<int>()->default_value(4), "maximum level")
         ("corr", "input file is a correlation matrix")
         ("gpus,g", po::value<vector<int>>()->multitoken(), "GPU deviceIds that should be used")
@@ -80,6 +84,7 @@ int main(int argc, char const *argv[])
 #ifdef NDEBUG
     bool verbose = vm.count("verbose") != 0;
 #else
+    std::cout << "Debug mode, verbose is on." << std::endl;
     bool verbose = true;
 #endif
 
@@ -129,13 +134,15 @@ int main(int argc, char const *argv[])
 
         MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
         memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, heterogeneity, vm.count("print-sepsets"));
+        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
+        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
     }
     else
     {
         MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
         gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, heterogeneity, vm.count("print-sepsets"));
+        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
+        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
     }
 
     return 0;
