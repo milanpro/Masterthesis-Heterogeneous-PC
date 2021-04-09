@@ -85,11 +85,9 @@ int64_t Balancer::balance(int level)
 
     int max_rows_on_cpu = (float)max_rows_on_cpu_multiplier * ompThreadCount;
 
-    // Calculate iterations thresholdwith which is balanced on the CPU
+    // Calculate row length threshold used for balancing
     cpuExecutor->calculateRowLengthMap(level);
-
     int max_iterations_idx = max_rows_on_cpu < variableCount ? max_rows_on_cpu : std::ceil(variableCount * max_rows_on_cpu_multiplier);
-
     auto max_row_length = std::get<1>(cpuExecutor->rowLengthMap[max_iterations_idx]);
 
     // Start balancing
