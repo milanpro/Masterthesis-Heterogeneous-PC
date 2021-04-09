@@ -154,14 +154,14 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
               state.cor[sepset_nodes[i - 2] * state.p + sepset_nodes[j - 2]];
         }
       }
-      pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
-      double r = -SubmatPInv[0][1] / sqrt(SubmatPInv[0][0] * SubmatPInv[1][1]);
-      double pVal = GPU::calcPValue(r, state.observations);
-
       if (state.node_status[row_node * state.p + col_node] == edge_done)
       {
         return;
       }
+      pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
+      double r = -SubmatPInv[0][1] / sqrt(SubmatPInv[0][0] * SubmatPInv[1][1]);
+      double pVal = GPU::calcPValue(r, state.observations);
+
       if (pVal >= state.alpha)
       {
         state.node_status[row_node * state.p + col_node] = edge_done;

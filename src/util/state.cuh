@@ -2,6 +2,7 @@
 #include "./cuda_util.cuh"
 #include <stdint.h>
 #include <vector>
+#include <cuda/atomic>
 
 /**
 Saves every important value/structure needed for the indepTests.
@@ -31,7 +32,7 @@ struct MMState {
   int *max_adj;
   int *lock;
   int maxLevel;
-  bool *node_status;
+  cuda::atomic<bool> *node_status;
   bool gpu_done;
 
   MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId);

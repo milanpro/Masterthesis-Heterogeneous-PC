@@ -52,12 +52,14 @@ set_property(TARGET heterogpc
 set_property(TARGET heterogpc 
              PROPERTY CUDA_ARCHITECTURES 70)
 
+find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Armadillo REQUIRED)
 find_package(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(${BOOST_INCLUDE_DIRS})
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 target_link_libraries(heterogpc
     ${ARMADILLO_LIBRARIES}
