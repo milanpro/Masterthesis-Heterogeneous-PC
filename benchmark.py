@@ -28,9 +28,9 @@ default_benchmark = {
   "workstealing" : False,
   "num_iterations" : 3,
   "numa_node": -1,
-  "row-mult": 0.25,
-  "row-mult2": 0.72,
-  "row-mult3": 0.30
+  "row-mult": 0.2,
+  "row-mult2": 0.2,
+  "row-mult3": 0.1
 }
 
 def read_benchmarks():
