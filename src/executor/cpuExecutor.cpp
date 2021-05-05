@@ -19,6 +19,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
   auto start = std::chrono::system_clock::now();
   std::atomic<int> edges_done = 0;
   bool edge_done = level % 2 == 1;
+  int p = (int)state->p;
 #pragma omp parallel
   {
     int id = omp_get_thread_num();
@@ -29,8 +30,8 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
       auto [row_node, row_length] = rowLengthMap[row];
       for (int i = row_length - 1; i >= 0; i--)
       {
-        auto col_node = state->adj_compact[row_node * state->p + i];
-        if (col_node != row_node && state->node_status[row_node * state->p + col_node] != edge_done)
+        auto col_node = state->adj_compact[row_node * p + i];
+        if (col_node != row_node && state->node_status[row_node * p + col_node] != edge_done)
         {
           if (level == 1)
           {
@@ -80,11 +81,11 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
     }
   }
   std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
-
-#pragma omp parallel for shared(state, level, sortedRows) default(none) collapse(2) schedule(dynamic, 10)
+  int p = (int)state->p;
+#pragma omp parallel for shared(state, level, sortedRows, p) default(none) collapse(2) schedule(dynamic, 10)
   for (auto i = 0; i < sortedRows.size(); i++)
   {
-    for (int col_node = 0; col_node < state->p; col_node++)
+    for (int col_node = 0; col_node < p; col_node++)
     {
       testEdge(level, state, std::get<0>(sortedRows[i]), col_node, deletedEdges);
     }

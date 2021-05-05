@@ -15,14 +15,14 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
           state->cor[row_node * p + actual_col_node],
           state->cor[row_node * p + subIndex],
           state->cor[actual_col_node * p + subIndex], state->observations);
-      if (state->node_status[row_node * state->p + actual_col_node])
+      if (state->node_status[row_node * p + actual_col_node])
       {
         return;
       }
       // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
       if (pVal >= state->alpha)
       {
-        state->node_status[row_node * state->p + actual_col_node] = true;
+        state->node_status[row_node * p + actual_col_node] = true;
         edges_done++;
         DeletedEdge result;
         result.col = actual_col_node;
@@ -34,19 +34,20 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
       }
     }
   }
-  state->node_status[row_node * state->p + actual_col_node] = true;
+  state->node_status[row_node * p + actual_col_node] = true;
   edges_done++;
 }
 
 void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done, bool edge_done, int level)
 {
+  int p = (int)state->p;
   int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
   size_t row_test_count = binomialCoeff(row_neighbours, level);
   int sepset_nodes[level];
   int lvlSize = level + 2;
   for (int test_index = row_test_count - 1; test_index >= 0; test_index--)
   {
-    if (state->node_status[row_node * state->p + actual_col_node] == edge_done)
+    if (state->node_status[row_node * p + actual_col_node] == edge_done)
     {
       return;
     }
@@ -60,47 +61,47 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
       if (sepset_nodes[ind] - 1 >= col_node)
       {
         sepset_nodes[ind] =
-            state->adj_compact[row_node * state->p + sepset_nodes[ind]];
+            state->adj_compact[row_node * p + sepset_nodes[ind]];
       }
       else
       {
         sepset_nodes[ind] =
-            state->adj_compact[row_node * state->p + sepset_nodes[ind] - 1];
+            state->adj_compact[row_node * p + sepset_nodes[ind] - 1];
       }
     }
 
     arma::dmat Submat(lvlSize, lvlSize, arma::fill::eye);
 
-    Submat(0, 1) = Submat(1, 0) = state->cor[row_node * state->p + actual_col_node];
+    Submat(0, 1) = Submat(1, 0) = state->cor[row_node * p + actual_col_node];
 
     for (int j = 2; j < lvlSize; ++j)
     {
       // set correlations of X
       Submat(0, j) = Submat(j, 0) =
-          state->cor[row_node * state->p + sepset_nodes[j - 2]];
+          state->cor[row_node * p + sepset_nodes[j - 2]];
       // set correlations of Y
       Submat(1, j) = Submat(j, 1) =
-          state->cor[actual_col_node * state->p + sepset_nodes[j - 2]];
+          state->cor[actual_col_node * p + sepset_nodes[j - 2]];
     }
     for (int i = 2; i < lvlSize; ++i)
     {
       for (int j = i + 1; j < lvlSize; ++j)
       {
         Submat(i, j) = Submat(j, i) =
-            state->cor[sepset_nodes[i - 2] * state->p + sepset_nodes[j - 2]];
+            state->cor[sepset_nodes[i - 2] * p + sepset_nodes[j - 2]];
       }
     }
 
     double pVal = CPU::pValLN(Submat, state->observations);
 
-    if (state->node_status[row_node * state->p + actual_col_node] == edge_done)
+    if (state->node_status[row_node * p + actual_col_node] == edge_done)
     {
       return;
     }
     // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
     if (pVal >= state->alpha)
     {
-      state->node_status[row_node * state->p + actual_col_node] = edge_done;
+      state->node_status[row_node * p + actual_col_node] = edge_done;
       edges_done++;
       DeletedEdge result;
       result.col = actual_col_node;
@@ -115,6 +116,6 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
       return;
     }
   }
-  state->node_status[row_node * state->p + actual_col_node] = edge_done;
+  state->node_status[row_node * p + actual_col_node] = edge_done;
   edges_done++;
 }
