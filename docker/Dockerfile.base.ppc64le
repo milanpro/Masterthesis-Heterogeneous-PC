@@ -1,10 +1,17 @@
 FROM nvidia/cuda-ppc64le:11.2.2-devel-centos8
 
 RUN dnf update
+RUN dnf -y install wget
+RUN wget 'http://public.dhe.ibm.com/software/server/POWER/Linux/yum/download/ibm-power-repo-3.0.0-19.noarch.rpm' \
+    && rpm -ivh ibm-power-repo-3.0.0-19.noarch.rpm \
+    && rm -f ibm-power-repo-3.0.0-19.noarch.rpm \
+    && /opt/ibm/lop/configure
+
 RUN yum -y install dnf-plugins-core
 RUN dnf config-manager --set-enabled powertools
 RUN dnf --enablerepo=powertools -y install \
-    wget \
+    numactl \
+    advance-toolchain-at14.0-devel \
     openblas-devel \
     lapack-devel \
     openssl-devel \
@@ -26,13 +33,15 @@ RUN mkdir -p /tmp/cmake && \
     cd /tmp && \
     rm -rf /tmp/cmake
 
+ENV CMAKE_PREFIX_PATH=/opt/at14.0/
+
 # Armadillo
 RUN mkdir -p /tmp/armadillo && \
     cd /tmp/armadillo && \
     wget 'https://sourceforge.net/projects/arma/files/armadillo-10.3.0.tar.xz' && \
     tar -xJf armadillo-10.3.0.tar.xz && \
     cd /tmp/armadillo/armadillo-10.3.0 && \
-    ./configure && \
+    cmake -DCMAKE_CXX_FLAGS="-O3 -flto -fpeel-loops -funroll-loops -ftree-vectorize -ffast-math -mcpu=power9 -mtune=power9" . && \
     make && \
     make install && \
     cd /tmp && \

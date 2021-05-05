@@ -6,7 +6,8 @@ COPY ./CMakeLists.txt /usr/src/project
 COPY ./src /usr/src/project/src
 RUN mkdir /usr/src/project/build
 WORKDIR /usr/src/project/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release ..
+ENV CMAKE_PREFIX_PATH=/opt/at14.0/
+RUN cmake -DCMAKE_CXX_FLAGS="-O3 -flto -fpeel-loops -funroll-loops -ftree-vectorize -ffast-math -mcpu=power9 -mtune=power9" -DCMAKE_BUILD_TYPE=Release ..
 RUN make
 COPY ./benchmark.py /usr/src/project/benchmark.py
 RUN mkdir -p /usr/src/project/benchmarks
