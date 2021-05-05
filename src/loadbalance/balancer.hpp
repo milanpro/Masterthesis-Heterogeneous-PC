@@ -3,7 +3,6 @@
 #include "../executor/gpuExecutor.cuh"
 #include "../executor/cpuExecutor.hpp"
 #include <vector>
-#include <memory>
 #include <tuple>
 
 enum Heterogeneity {
@@ -29,5 +28,6 @@ struct Balancer
   int64_t balance(int level);
   std::tuple<TestResult, TestResult> execute(int level);
   std::tuple<TestResult, TestResult> executeWorkstealing(int level);
+  Balancer(){}
   Balancer(std::vector<int> gpuList, MMState *state, std::tuple<float, float, float> row_multipliers, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };

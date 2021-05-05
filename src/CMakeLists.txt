@@ -43,6 +43,8 @@ set(SOURCE_FILES
     util/csv_parser.hpp
     util/csv_parser.cpp
     util/sepset_util.hpp
+    util/assertions.hpp
+    util/assertions.cpp
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})

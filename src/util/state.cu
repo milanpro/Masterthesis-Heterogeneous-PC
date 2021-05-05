@@ -1,6 +1,4 @@
 #include "state.cuh"
-#include <algorithm>
-#include <iostream>
 
 MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId, bool ats)
     : p(p), observations(observations), alpha(alpha), maxLevel(maxLevel), ats(ats)
@@ -12,7 +10,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   {
     adj = (int *)malloc((uint64_t)sizeof(int) * p * p);
     pMax = (double *)malloc((uint64_t)sizeof(double) * p * p);
-    node_status = (bool *)malloc((uint64_t)sizeof(bool) * p * p);
+    node_status = (statusbool*)malloc((uint64_t)sizeof(statusbool) * p * p);
     sepSets = (int *)malloc((uint64_t)sizeof(int) * p * p * maxCondSize);
     adj_compact = (int *)malloc((uint64_t)sizeof(int) * p * p);
     max_adj = (int *)malloc((uint64_t)sizeof(int));
@@ -22,7 +20,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   {
     checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
     checkCudaErrors(cudaMallocManaged(&pMax, (uint64_t)sizeof(double) * p * p));
-    checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(cuda::atomic<bool>) * p * p));
+    checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(statusbool) * p * p));
     checkCudaErrors(
         cudaMallocManaged(&sepSets, (uint64_t)sizeof(int) * p * p * maxCondSize));
     checkCudaErrors(

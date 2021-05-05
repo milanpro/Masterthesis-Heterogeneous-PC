@@ -1,81 +1,84 @@
+#include <iostream>
+#include <fstream>
+#include "./skeleton.hpp"
+#include "./compact.cuh"
 #include "../util/cuda_util.cuh"
 #include "../util/csv_parser.hpp"
 #include "../util/sepset_util.hpp"
-#include "skeleton.hpp"
-#include "compact.cuh"
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <future>
-#include <tuple>
-#include <vector>
-#include <cmath>
-#include "skeleton.hpp"
-#include <omp.h>
+#include "../util/assertions.hpp"
+#include "../correlation/corOwn.cuh"
 
-SkeletonCalculator::SkeletonCalculator(int maxLevel, double alpha, bool workstealing, std::string csvExportFile, bool verbose) : maxLevel(maxLevel), alpha(alpha), workstealing(workstealing), csvExportFile(csvExportFile), verbose(verbose)
+using namespace std;
+
+SkeletonCalculator::SkeletonCalculator(int maxLevel, double alpha, bool workstealing, string csvExportFile, bool verbose) : maxLevel(maxLevel), alpha(alpha), workstealing(workstealing), csvExportFile(csvExportFile), verbose(verbose)
 {
   gpuList = {0};
   heterogeneity = Heterogeneity::All;
 }
 
-SkeletonCalculator::set_heterogeneity(Heterogeneity heterogeneity) : heterogeneity(heterogeneity)
+void SkeletonCalculator::set_heterogeneity(Heterogeneity heterogeneity)
 {
-  return this;
+  this->heterogeneity = heterogeneity;
 }
 
-SkeletonCalculator::set_gpu_list(std::vector<int> gpuList) : gpuList(gpuList)
+void SkeletonCalculator::set_gpu_list(vector<int> gpuList)
 {
-  return this;
+  this->gpuList = gpuList;
 }
 
-SkeletonCalculator::read_csv_file(std::string input_file)
+shared_ptr<arma::mat> SkeletonCalculator::read_csv_file(string input_file)
 {
-  string _match(inputFile);
+  if (verbose)
+  {
+    cout << "Reading file: " << input_file << endl;
+  }
+
+  string _match(input_file);
   shared_ptr<arma::mat> array_data;
   vector<string> column_names(0);
 
   if (_match.find(".csv") != string::npos)
   {
-    array_data = CSVParser::read_csv_to_mat(inputFile, column_names);
+    array_data = CSVParser::read_csv_to_mat(input_file, column_names);
   }
   else
   {
-    cout << "Cannot process file '" << inputFile << "\'." << endl;
+    cout << "Cannot process file '" << input_file << "\'." << endl;
     cout << "Has to be .csv format." << endl;
     exit(-1);
   }
   return array_data;
 }
 
-SkeletonCalculator::add_observations(std::string input_file, bool use_p9_ats)
+void SkeletonCalculator::add_observations(string input_file, bool use_p9_ats)
 {
   auto array_data = this->read_csv_file(input_file);
   state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0], use_p9_ats);
   gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-  return this;
 }
 
-SkeletonCalculator::add_correlation_matrix(std::string input_file, int observation_count, bool use_p9_ats)
+void SkeletonCalculator::add_correlation_matrix(string input_file, int observation_count, bool use_p9_ats)
 {
   auto array_data = this->read_csv_file(input_file);
   state = MMState(array_data.get()->n_cols, observation_count, alpha, maxLevel, gpuList[0], use_p9_ats);
   memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-  return this;
 }
 
-SkeletonCalculator::initialize_balancer(std::tuple<float, float, float> balancer_thresholds)
+void SkeletonCalculator::initialize_balancer(tuple<float, float, float> balancer_thresholds)
 {
   balancer = Balancer(gpuList, &state, balancer_thresholds, heterogeneity, verbose);
-  return this;
 }
 
-SkeletonCalculator::export_metrics(int nrEdges)
+void SkeletonCalculator::export_metrics(vector<LevelMetrics> levelMetrics, int64_t executionDuration, int nrEdges)
 {
   if (csvExportFile != "")
   {
-    std::ofstream csvFile;
-    csvFile.open(csvExportFile, std::ios::app | std::ios::out);
+    if (verbose)
+    {
+      cout << "Export metrics to CSV file: " << csvExportFile << endl;
+    }
+    ofstream csvFile;
+    csvFile.open(csvExportFile, ios::app | ios::out);
 
     int numGPUs = heterogeneity == Heterogeneity::CPUOnly ? 0 : gpuList.size();
     csvFile << numGPUs << ",";
@@ -92,15 +95,15 @@ SkeletonCalculator::export_metrics(int nrEdges)
       csvFile << levelDur << "," << balanceDur << "," << cpuRes.duration << "," << gpuRes.duration << ",";
     }
 
-    csvFile << executionDuration << std::endl;
+    csvFile << executionDuration << endl;
 
     csvFile.close();
   }
 }
 
-SkeletonCalculator::calcLevel(int level)
+LevelMetrics SkeletonCalculator::calcLevel(int level)
 {
-  auto start = std::chrono::system_clock::now();
+  auto start = chrono::system_clock::now();
   int numberOfGPUs = gpuList.size();
   int device_row_count = (state.p + numberOfGPUs - 1) / numberOfGPUs;
   if (level >= 1)
@@ -112,14 +115,14 @@ SkeletonCalculator::calcLevel(int level)
     }
 
 #ifndef NDEBUG
-    assertAdjCompactIsAdj(state);
+    assertAdjCompactIsAdj(&state);
 #endif
   }
 
   if (verbose)
-    std::cout << "Max row length: " << state.max_adj[0] << std::endl;
+    cout << "Max row length: " << state.max_adj[0] << endl;
 
-  std::tuple<TestResult, TestResult> execRes;
+  tuple<TestResult, TestResult> execRes;
   int64_t balanceDur = 0;
   if (workstealing)
   {
@@ -129,7 +132,7 @@ SkeletonCalculator::calcLevel(int level)
     }
     for (int i = 0; i < numberOfGPUs; i++)
     {
-      state->prefetchRows(i * device_row_count, device_row_count, gpuList[i]);
+      state.prefetchRows(i * device_row_count, device_row_count, gpuList[i]);
     }
     execRes = balancer.executeWorkstealing(level);
   }
@@ -139,69 +142,50 @@ SkeletonCalculator::calcLevel(int level)
     execRes = balancer.execute(level);
   }
 
-  auto levelDur = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::system_clock::now() - start)
+  auto levelDur = chrono::duration_cast<chrono::milliseconds>(
+                      chrono::system_clock::now() - start)
                       .count();
 
   return {levelDur, balanceDur, execRes};
 }
 
-SkeletonCalculator::run(bool print_sepsets)
+void SkeletonCalculator::run(bool print_sepsets)
 {
 
   if (verbose)
-    std::cout << "maxCondSize: " << state.maxCondSize
-              << "  observations: " << state.observations
-              << "  p: " << state.p << " number of GPUS: " << gpuList.size() << std::endl;
+  {
+    cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
+    cout << "Using following GPUs:" << endl;
+    for (auto deviceId : gpuList)
+    {
+      cout << "\t" << deviceId << endl;
+    }
+    cout << "maxCondSize: " << state.maxCondSize
+         << "  observations: " << state.observations
+         << "  p: " << state.p << " number of GPUS: " << gpuList.size() << endl;
+  }
 
-  auto start = std::chrono::system_clock::now();
+  auto start = chrono::system_clock::now();
   state.adviceReadonlyCor(gpuList);
   state.memAdvise(gpuList);
 
-  std::vector<LevelMetrics> levelMetrics;
+  vector<LevelMetrics> levelMetrics;
   for (int lvl = 0; lvl <= state.maxLevel; lvl++)
   {
     auto metric = this->calcLevel(lvl);
     levelMetrics.push_back(metric);
   }
 
-  auto executionDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                               std::chrono::system_clock::now() - start)
+  auto executionDuration = chrono::duration_cast<chrono::milliseconds>(
+                               chrono::system_clock::now() - start)
                                .count();
 
   if (verbose)
   {
-    std::cout << "Execution duration: " << executionDuration << " ms." << std::endl;
+    cout << "Execution duration: " << executionDuration << " ms." << endl;
   }
 
   int nrEdges = printSepsets(&state, print_sepsets, verbose);
 
-  this->export_metrics(nrEdges);
-}
-
-void assertAdjCompactIsAdj(MMState *state)
-{
-  int active_edges = 0;
-  for (int i = 0; i < state->p; i++)
-  {
-    int row_length = 0;
-    for (int j = 0; j < state->p; j++)
-    {
-      int deletedAdj = state->adj[i * state->p + j];
-      int deletedAdjComp = 0;
-      for (int k = 0; k < state->adj_compact[i * state->p + state->p - 1]; k++)
-      {
-        if (state->adj_compact[i * state->p + k] == j)
-        {
-          deletedAdjComp = 1;
-          row_length++;
-          break;
-        }
-      }
-      assert(deletedAdj == deletedAdjComp);
-    }
-    assert(state->adj_compact[i * state->p + state->p - 1] == row_length);
-    active_edges += row_length;
-  }
-  std::cout << "Active edges: " << active_edges << std::endl;
+  this->export_metrics(levelMetrics, executionDuration, nrEdges);
 }

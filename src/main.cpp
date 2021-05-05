@@ -1,16 +1,11 @@
 #include <iostream>
 #include <boost/program_options.hpp>
-#include "csv_parser.hpp"
-#include "correlation/corOwn.cuh"
-#include "util/state.cuh"
 #include "independence/skeleton.hpp"
-#include "loadbalance/balancer.hpp"
-namespace po = boost::program_options;
-#include <iostream>
 #include <vector>
-#include <iterator>
 #include <omp.h>
+
 using namespace std;
+namespace po = boost::program_options;
 
 #ifdef __linux__
 const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
@@ -20,7 +15,9 @@ const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
 
 int main(int argc, char const *argv[])
 {
-
+    /**
+     * Build Program options
+     */
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce a help message")
@@ -53,17 +50,26 @@ int main(int argc, char const *argv[])
     {
         po::notify(vm);
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
         cerr << "Error: " << e.what() << "\n";
         return 1;
     }
 
+    /**
+     * Extract options from program options
+     */
 #ifdef NDEBUG
     bool verbose = vm.count("verbose") != 0;
 #else
-    std::cout << "Debug mode, verbose is on." << std::endl;
+    cout << "Debug mode, verbose is on." << endl;
     bool verbose = true;
+#endif
+
+#if WITH_CUDA_ATOMICS
+    if (verbose) {
+        cout << "Using CUDA atomics for workstealing synchronization" << endl;
+    }
 #endif
 
     if (vm.count("thread-count"))
@@ -83,19 +89,9 @@ int main(int argc, char const *argv[])
         csvExportFile = vm["csv-export"].as<string>();
     }
 
-    if (verbose)
-    {
-        cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
-        cout << "Using following GPUs:" << endl;
-        for (auto deviceId : gpuList) {
-            cout << "\t" << deviceId << endl;
-        }
-        cout << "Reading file: " << inputFile << endl;
-        if (csvExportFile != "") {
-            cout << "Export metrics to CSV file: " << csvExportFile << endl;
-        }
-    }
-
+    /**
+     * Start building Skeleton Calculator from options
+     */
     SkeletonCalculator skeletonCalculator = SkeletonCalculator(maxLevel, alpha, workstealing, csvExportFile, verbose);
 
     if (vm.count("gpu-only")) {
@@ -127,11 +123,15 @@ int main(int argc, char const *argv[])
         skeletonCalculator.add_observations(inputFile, use_p9_ats);
     }
 
-    std::tuple<float, float, float> balancer_thresholds = {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()};
+    tuple<float, float, float> balancer_thresholds = {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()};
 
     skeletonCalculator.initialize_balancer(balancer_thresholds);
 
-    skeletonCalculator.run();
+
+    /**
+     * Run skeleton estimation
+     */
+    skeletonCalculator.run(print_sepsets);
 
     return 0;
 }
