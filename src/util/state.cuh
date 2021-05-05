@@ -20,6 +20,7 @@ others. (Data structure maybe change.)
 */
 
 struct MMState {
+  bool ats;
   double *pMax;
   int *adj;
   int *adj_compact;
@@ -35,7 +36,7 @@ struct MMState {
   cuda::atomic<bool> *node_status;
   bool gpu_done;
 
-  MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId);
+  MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId, bool ats = false);
 
   void adviceReadonlyCor(std::vector<int> gpuList);
 

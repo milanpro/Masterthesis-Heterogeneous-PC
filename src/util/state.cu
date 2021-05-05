@@ -2,21 +2,34 @@
 #include <algorithm>
 #include <iostream>
 
-MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId)
-    : p(p), observations(observations), alpha(alpha), maxLevel(maxLevel)
+MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId, bool ats)
+    : p(p), observations(observations), alpha(alpha), maxLevel(maxLevel), ats(ats)
 {
   checkCudaErrors(cudaSetDevice(mainDeviceId));
   maxCondSize = std::max(maxLevel, 1);
-  checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
   checkCudaErrors(cudaMallocManaged(&cor, (uint64_t)sizeof(double) * p * p));
-  checkCudaErrors(cudaMallocManaged(&pMax, (uint64_t)sizeof(double) * p * p));
-  checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(cuda::atomic<bool>) * p * p));
-  checkCudaErrors(
-      cudaMallocManaged(&sepSets, (uint64_t)sizeof(int) * p * p * maxCondSize));
-  checkCudaErrors(
-      cudaMallocManaged(&adj_compact, (uint64_t)sizeof(int) * p * p));
-  checkCudaErrors(cudaMallocManaged(&max_adj, (uint64_t)sizeof(int)));
-  checkCudaErrors(cudaMallocManaged(&lock, (uint64_t)sizeof(int) * p * p));
+  if (ats)
+  {
+    adj = (int *)malloc((uint64_t)sizeof(int) * p * p);
+    pMax = (double *)malloc((uint64_t)sizeof(double) * p * p);
+    node_status = (bool *)malloc((uint64_t)sizeof(bool) * p * p);
+    sepSets = (int *)malloc((uint64_t)sizeof(int) * p * p * maxCondSize);
+    adj_compact = (int *)malloc((uint64_t)sizeof(int) * p * p);
+    max_adj = (int *)malloc((uint64_t)sizeof(int));
+    lock = (int *)malloc((uint64_t)sizeof(int) * p * p);
+  }
+  else
+  {
+    checkCudaErrors(cudaMallocManaged(&adj, (uint64_t)sizeof(int) * p * p));
+    checkCudaErrors(cudaMallocManaged(&pMax, (uint64_t)sizeof(double) * p * p));
+    checkCudaErrors(cudaMallocManaged(&node_status, (uint64_t)sizeof(cuda::atomic<bool>) * p * p));
+    checkCudaErrors(
+        cudaMallocManaged(&sepSets, (uint64_t)sizeof(int) * p * p * maxCondSize));
+    checkCudaErrors(
+        cudaMallocManaged(&adj_compact, (uint64_t)sizeof(int) * p * p));
+    checkCudaErrors(cudaMallocManaged(&max_adj, (uint64_t)sizeof(int)));
+    checkCudaErrors(cudaMallocManaged(&lock, (uint64_t)sizeof(int) * p * p));
+  }
   std::fill_n(adj, p * p, 1);
   std::fill_n(adj_compact, p * p, 1);
   std::fill_n(node_status, p * p, false);
@@ -60,9 +73,12 @@ void MMState::prefetchRows(int startRow, int rowCount, int deviceId)
 
 void MMState::memAdvise(std::vector<int> gpuList)
 {
-  checkCudaErrors(cudaMemAdvise(adj_compact,
-                                (uint64_t)sizeof(int) * p * p,
-                                cudaMemAdviseSetReadMostly, 0));
+  if (!ats)
+  {
+    checkCudaErrors(cudaMemAdvise(adj_compact,
+                                  (uint64_t)sizeof(int) * p * p,
+                                  cudaMemAdviseSetReadMostly, 0));
+  }
 
   int numberOfGPUs = gpuList.size();
   for (int i = 0; i < gpuList.size(); i++)
@@ -81,11 +97,23 @@ void MMState::memAdvise(std::vector<int> gpuList)
 
 void MMState::destroy()
 {
-  checkCudaErrors(cudaFree(adj));
   checkCudaErrors(cudaFree(cor));
-  checkCudaErrors(cudaFree(pMax));
-  checkCudaErrors(cudaFree(sepSets));
-  checkCudaErrors(cudaFree(adj_compact));
-  checkCudaErrors(cudaFree(lock));
-  checkCudaErrors(cudaFree(node_status));
+  if (ats)
+  {
+    free(adj);
+    free(pMax);
+    free(sepSets);
+    free(adj_compact);
+    free(lock);
+    free(node_status);
+  }
+  else
+  {
+    checkCudaErrors(cudaFree(adj));
+    checkCudaErrors(cudaFree(pMax));
+    checkCudaErrors(cudaFree(sepSets));
+    checkCudaErrors(cudaFree(adj_compact));
+    checkCudaErrors(cudaFree(lock));
+    checkCudaErrors(cudaFree(node_status));
+  }
 }

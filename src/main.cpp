@@ -37,6 +37,7 @@ int main(int argc, char const *argv[])
         ("csv-export", po::value<string>(), "Export runtimes execution metrics to CSV")
         ("gpu-only", "execution on gpu only")
         ("cpu-only", "execution on cpu only")
+        ("power9-ats", "Use power9 system allocator for ATS (Address translation service)")
         ("workstealing,w", "use workstealing CPU executor")
         ("print-sepsets,p", "prints-sepsets")
         ("verbose,v", "verbose output");
@@ -58,16 +59,12 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    string inputFile = vm["input-file"].as<string>();
-    double alpha = vm["alpha"].as<double>();
-    int maxLevel = vm["max-level"].as<int>();
-
-    vector<int> gpuList;
-    if (vm.count("gpus")) {
-        gpuList = vm["gpus"].as<vector<int>>();
-    } else {
-        gpuList = {0};
-    }
+#ifdef NDEBUG
+    bool verbose = vm.count("verbose") != 0;
+#else
+    std::cout << "Debug mode, verbose is on." << std::endl;
+    bool verbose = true;
+#endif
 
     if (vm.count("thread-count"))
     {
@@ -75,18 +72,16 @@ int main(int argc, char const *argv[])
         omp_set_num_threads(numberOfThreads);
     }
 
+    string inputFile = vm["input-file"].as<string>();
+    double alpha = vm["alpha"].as<double>();
+    int maxLevel = vm["max-level"].as<int>();
+    bool workstealing = vm.count("workstealing");
+
     string csvExportFile;
     if (vm.count("csv-export"))
     {
         csvExportFile = vm["csv-export"].as<string>();
     }
-
-#ifdef NDEBUG
-    bool verbose = vm.count("verbose") != 0;
-#else
-    std::cout << "Debug mode, verbose is on." << std::endl;
-    bool verbose = true;
-#endif
 
     if (verbose)
     {
@@ -101,28 +96,21 @@ int main(int argc, char const *argv[])
         }
     }
 
-    string _match(inputFile);
-    shared_ptr<arma::mat> array_data;
-    vector<string> column_names(0);
-
-    if (_match.find(".csv") != string::npos)
-    {
-        array_data = CSVParser::read_csv_to_mat(inputFile, column_names);
-    }
-    else
-    {
-        cout << "Cannot process file '" << inputFile << "\'." << endl;
-        cout << "Has to be .csv format." << endl;
-        return -1;
-    }
-
-    int heterogeneity = 0;
+    SkeletonCalculator skeletonCalculator = SkeletonCalculator(maxLevel, alpha, workstealing, csvExportFile, verbose);
 
     if (vm.count("gpu-only")) {
-        heterogeneity = 1;
+        skeletonCalculator.set_heterogeneity(Heterogeneity::GPUOnly);
     } else if (vm.count("cpu-only")) {
-        heterogeneity = 2;
+        skeletonCalculator.set_heterogeneity(Heterogeneity::CPUOnly);
     }
+
+    if (vm.count("gpus")) {
+        skeletonCalculator.set_gpu_list(vm["gpus"].as<vector<int>>());
+    }
+
+
+    bool print_sepsets = vm.count("print-sepsets");
+    bool use_p9_ats = vm.count("power9-ats");
 
     if (vm.count("corr"))
     {
@@ -131,19 +119,19 @@ int main(int argc, char const *argv[])
             cout << "Observation count needed with correlation matrix input" << endl;
             return -1;
         }
-
-        MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
-        memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
+        int observation_count = vm["observations"].as<int>();
+        skeletonCalculator.add_correlation_matrix(inputFile, observation_count, use_p9_ats);
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
-        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
+        skeletonCalculator.add_observations(inputFile, use_p9_ats);
     }
+
+    std::tuple<float, float, float> balancer_thresholds = {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()};
+
+    skeletonCalculator.initialize_balancer(balancer_thresholds);
+
+    skeletonCalculator.run();
 
     return 0;
 }

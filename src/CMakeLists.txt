@@ -9,8 +9,6 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
 endif()
 
 set(SOURCE_FILES
-    csv_parser.hpp
-    csv_parser.cpp
     correlation/corHelper.cu
     correlation/corOwn.cu
     correlation/corOwn.cuh
@@ -42,6 +40,9 @@ set(SOURCE_FILES
     util/cuda_util.cuh
     util/state.cu
     util/state.cuh
+    util/csv_parser.hpp
+    util/csv_parser.cpp
+    util/sepset_util.hpp
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})
