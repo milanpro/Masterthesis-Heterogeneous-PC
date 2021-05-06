@@ -7,6 +7,7 @@
 #include <tuple>
 #include <omp.h>
 #include <atomic>
+#include <cmath>
 
 bool compTuple(std::tuple<int, int> i, std::tuple<int, int> j) { return (std::get<1>(i) > std::get<1>(j)); }
 
@@ -20,30 +21,42 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
   std::atomic<int> edges_done = 0;
   bool edge_done = level % 2 == 1;
   int p = (int)state->p;
+  int max_row_length = std::get<1>(rowLengthMap[0]);
+  int row_count = rowLengthMap.size();
+  int edge_count = row_count * max_row_length;
 #pragma omp parallel
   {
     int id = omp_get_thread_num();
     int offset = omp_get_num_threads();
-    int row = id;
-    while (row < rowLengthMap.size() && state->gpu_done != edge_done)
+    int idx = edge_count - id;
+    int col = idx % max_row_length;
+    int row = row_count - ((idx - col) / max_row_length);
+    while (state->gpu_done != edge_done)
     {
       auto [row_node, row_length] = rowLengthMap[row];
-      for (int i = row_length - 1; i >= 0; i--)
+      if (row_length > col && row_length > level)
       {
-        auto col_node = state->adj_compact[row_node * p + i];
+        auto col_node = state->adj_compact[row_node * p + col];
         if (col_node != row_node && state->node_status[row_node * p + col_node] != edge_done)
         {
           if (level == 1)
           {
-            testEdgeWorkstealingL1(state, row_node, i, col_node, deletedEdges, row_length, edges_done);
+            testEdgeWorkstealingL1(state, row_node, col, col_node, deletedEdges, row_length, edges_done);
           }
           else
           {
-            testEdgeWorkstealingLN(state, row_node, i, col_node, deletedEdges, row_length, edges_done, edge_done, level);
+            testEdgeWorkstealingLN(state, row_node, col, col_node, deletedEdges, row_length, edges_done, edge_done, level);
           }
         }
       }
-      row += offset;
+
+      idx -= offset;
+      if (idx < 0)
+      {
+        break;
+      }
+      col = idx % max_row_length;
+      row = row_count - ((idx - col) / max_row_length);
     }
   }
 
