@@ -193,6 +193,8 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
   assertNodeStatus(state, level);
 #endif
 
+  std::fill_n(state->node_status, state->p * state->p, false);
+
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
   cpuExecutor->calculateRowLengthMap(level);

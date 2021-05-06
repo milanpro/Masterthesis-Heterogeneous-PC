@@ -15,14 +15,9 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
           state->cor[row_node * p + actual_col_node],
           state->cor[row_node * p + subIndex],
           state->cor[actual_col_node * p + subIndex], state->observations);
-      if (state->node_status[row_node * p + actual_col_node])
-      {
-        return;
-      }
       // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
       if (pVal >= state->alpha)
       {
-        state->node_status[row_node * p + actual_col_node] = true;
         edges_done++;
         DeletedEdge result;
         result.col = actual_col_node;
@@ -38,7 +33,7 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
   edges_done++;
 }
 
-void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done, bool edge_done, int level)
+void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done, int level)
 {
   int p = (int)state->p;
   int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
@@ -47,10 +42,6 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
   int lvlSize = level + 2;
   for (int test_index = row_test_count - 1; test_index >= 0; test_index--)
   {
-    if (state->node_status[row_node * p + actual_col_node] == edge_done)
-    {
-      return;
-    }
 
     ithCombination(sepset_nodes, test_index, level,
                    row_neighbours);
@@ -94,14 +85,9 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
 
     double pVal = CPU::pValLN(Submat, state->observations);
 
-    if (state->node_status[row_node * p + actual_col_node] == edge_done)
-    {
-      return;
-    }
     // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
     if (pVal >= state->alpha)
     {
-      state->node_status[row_node * p + actual_col_node] = edge_done;
       edges_done++;
       DeletedEdge result;
       result.col = actual_col_node;
@@ -116,6 +102,5 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
       return;
     }
   }
-  state->node_status[row_node * p + actual_col_node] = edge_done;
   edges_done++;
 }

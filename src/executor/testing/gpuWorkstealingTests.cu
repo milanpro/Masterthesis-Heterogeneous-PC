@@ -11,9 +11,24 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
   size_t row_node = rows[start_row + blockIdx.x];
   size_t row_neighbours = state.adj_compact[row_node * state.p + state.p - 1];
 
-  extern __shared__ double pVals[];
   size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y];
-  if (row_neighbours > blockIdx.y && row_neighbours >= 1 && col_node < state.p && !state.node_status[row_node * state.p + col_node] && col_node != row_node)
+
+  if (row_node == col_node) {
+    return;
+  }
+
+  __shared__ bool active;
+  if (threadIdx.x == 0) {
+    bool expected = false;
+    active = state.node_status[row_node * state.p + col_node].compare_exchange_strong(expected, true);
+  }
+  __syncthreads();
+  if (!active) {
+    return;
+  }
+
+  extern __shared__ double pVals[];
+  if (row_neighbours > blockIdx.y && row_neighbours >= 1)
   {
     size_t subIndex = 0;
     for (size_t offset = threadIdx.x; offset < row_neighbours; offset += blockDim.x)
@@ -37,14 +52,8 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
         for (size_t i = 0; i < blockDim.x && i < row_neighbours; ++i)
         {
           double pVal = pVals[i];
-
-          if (state.node_status[row_node * state.p + col_node])
-          {
-            break;
-          }
           if (offset + i < state.p && pVal >= state.alpha)
           {
-            state.node_status[row_node * state.p + col_node] = true;
             if (row_node < col_node)
             {
               if (atomicCAS_system(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
@@ -74,12 +83,8 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
         }
       }
       __syncthreads();
-      if (state.node_status[row_node * state.p + col_node] || state.adj[row_node * state.p + col_node] == 0)
+      if (state.adj[row_node * state.p + col_node] == 0)
         break;
-    }
-    if (threadIdx.x == 0)
-    {
-      state.node_status[row_node * state.p + col_node] = true;
     }
   }
 }
@@ -92,13 +97,27 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
     return;
   }
 
-  bool edge_done = lvlSize % 2 == 1;
-
   size_t row_node = rows[start_row + blockIdx.x];
   size_t row_count = state.adj_compact[row_node * state.p + state.p - 1];
   if (row_count > blockIdx.y && // col_node available
       row_count >= kLvlSizeSmall)
   {
+    size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y]; // get actual id
+
+    if (row_node == col_node) {
+      return;
+    }
+
+    __shared__ bool active;
+    if (threadIdx.x == 0) {
+      bool expected = false;
+      active = state.node_status[row_node * state.p + col_node].compare_exchange_strong(expected, true);
+    }
+    __syncthreads();
+    if (!active) {
+      return;
+    }
+
     double Submat[lvlSize][lvlSize];
     double SubmatPInv[lvlSize][lvlSize];
     int sepset_nodes[kLvlSizeSmall];
@@ -107,10 +126,7 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
     double w[lvlSize], rv1[lvlSize];
     double res1[lvlSize][lvlSize];
     // Determine sepsets to work on
-    size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y]; // get actual id
-    if (row_node == col_node || state.node_status[row_node * state.p + col_node] == edge_done) {
-      return;
-    }
+
     int row_neighbours = row_count - 1; // get number of neighbours && exclude col_node
     size_t row_test_count = binomialCoeff(row_neighbours, kLvlSizeSmall);
     for (size_t test_index = threadIdx.x; test_index < row_test_count;
@@ -154,9 +170,8 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
               state.cor[sepset_nodes[i - 2] * state.p + sepset_nodes[j - 2]];
         }
       }
-      if (state.node_status[row_node * state.p + col_node] == edge_done)
-      {
-        return;
+      if ( state.adj[state.p * row_node + col_node] == 0) {
+        break;
       }
       pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
       double r = -SubmatPInv[0][1] / sqrt(SubmatPInv[0][0] * SubmatPInv[1][1]);
@@ -164,13 +179,12 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
 
       if (pVal >= state.alpha)
       {
-        state.node_status[row_node * state.p + col_node] = edge_done;
         if (row_node < col_node)
         {
           if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
           {
-            state.adj[state.p * row_node + col_node] = 0.f;
-            state.adj[state.p * col_node + row_node] = 0.f;
+            state.adj[state.p * row_node + col_node] = 0;
+            state.adj[state.p * col_node + row_node] = 0;
             state.pMax[state.p * row_node + col_node] = pVal;
             for (int j = 0; j < kLvlSizeSmall; ++j)
             {
@@ -183,8 +197,8 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
         {
           if (atomicCAS(&state.lock[(state.p * col_node) + row_node], 0, 1) == 0)
           {
-            state.adj[state.p * row_node + col_node] = 0.f;
-            state.adj[state.p * col_node + row_node] = 0.f;
+            state.adj[state.p * row_node + col_node] = 0;
+            state.adj[state.p * col_node + row_node] = 0;
             state.pMax[state.p * col_node + row_node] = pVal;
             for (int j = 0; j < kLvlSizeSmall; ++j)
             {
@@ -194,11 +208,6 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
           }
         }
       }
-    }
-    __syncthreads();
-    if (threadIdx.x == 0)
-    {
-      state.node_status[row_node * state.p + col_node] = edge_done;
     }
   }
 }

@@ -19,7 +19,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
   }
   auto start = std::chrono::system_clock::now();
   std::atomic<int> edges_done = 0;
-  bool edge_done = level % 2 == 1;
+  bool gpu_done = level % 2 == 1;
   int p = (int)state->p;
   int max_row_length = std::get<1>(rowLengthMap[0]);
   int row_count = rowLengthMap.size();
@@ -31,21 +31,23 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
     int idx = edge_count - id;
     int col = idx % max_row_length;
     int row = row_count - ((idx - col) / max_row_length);
-    while (state->gpu_done != edge_done)
+    while (state->gpu_done != gpu_done)
     {
       auto [row_node, row_length] = rowLengthMap[row];
       if (row_length > col && row_length > level)
       {
         auto col_node = state->adj_compact[row_node * p + col];
-        if (col_node != row_node && state->node_status[row_node * p + col_node] != edge_done)
+        bool expected = false;
+        if (col_node != row_node && state->node_status[row_node * p + col_node].compare_exchange_strong(expected, true))
         {
+          state->node_status[row_node * p + col_node] = 1;
           if (level == 1)
           {
             testEdgeWorkstealingL1(state, row_node, col, col_node, deletedEdges, row_length, edges_done);
           }
           else
           {
-            testEdgeWorkstealingLN(state, row_node, col, col_node, deletedEdges, row_length, edges_done, edge_done, level);
+            testEdgeWorkstealingLN(state, row_node, col, col_node, deletedEdges, row_length, edges_done, level);
           }
         }
       }
@@ -59,8 +61,6 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
       row = row_count - ((idx - col) / max_row_length);
     }
   }
-
-  state->gpu_done = edge_done;
 
   auto duration = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::system_clock::now() - start)
