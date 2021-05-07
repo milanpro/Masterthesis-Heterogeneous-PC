@@ -1,16 +1,11 @@
 #include <iostream>
 #include <boost/program_options.hpp>
-#include "csv_parser.hpp"
-#include "correlation/corOwn.cuh"
-#include "util/state.cuh"
 #include "independence/skeleton.hpp"
-#include "loadbalance/balancer.hpp"
-namespace po = boost::program_options;
-#include <iostream>
 #include <vector>
-#include <iterator>
 #include <omp.h>
+
 using namespace std;
+namespace po = boost::program_options;
 
 #ifdef __linux__
 const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
@@ -20,7 +15,9 @@ const string DEFAULT_INPUT_FILE = "../../../data/cooling_house.csv";
 
 int main(int argc, char const *argv[])
 {
-
+    /**
+     * Build Program options
+     */
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce a help message")
@@ -37,6 +34,7 @@ int main(int argc, char const *argv[])
         ("csv-export", po::value<string>(), "Export runtimes execution metrics to CSV")
         ("gpu-only", "execution on gpu only")
         ("cpu-only", "execution on cpu only")
+        ("power9-ats", "Use power9 system allocator for ATS (Address translation service)")
         ("workstealing,w", "use workstealing CPU executor")
         ("print-sepsets,p", "prints-sepsets")
         ("verbose,v", "verbose output");
@@ -52,22 +50,27 @@ int main(int argc, char const *argv[])
     {
         po::notify(vm);
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
         cerr << "Error: " << e.what() << "\n";
         return 1;
     }
 
-    string inputFile = vm["input-file"].as<string>();
-    double alpha = vm["alpha"].as<double>();
-    int maxLevel = vm["max-level"].as<int>();
+    /**
+     * Extract options from program options
+     */
+#ifdef NDEBUG
+    bool verbose = vm.count("verbose") != 0;
+#else
+    cout << "Debug mode, verbose is on." << endl;
+    bool verbose = true;
+#endif
 
-    vector<int> gpuList;
-    if (vm.count("gpus")) {
-        gpuList = vm["gpus"].as<vector<int>>();
-    } else {
-        gpuList = {0};
+#if WITH_CUDA_ATOMICS
+    if (verbose) {
+        cout << "Using CUDA atomics for workstealing synchronization" << endl;
     }
+#endif
 
     if (vm.count("thread-count"))
     {
@@ -75,54 +78,35 @@ int main(int argc, char const *argv[])
         omp_set_num_threads(numberOfThreads);
     }
 
+    string inputFile = vm["input-file"].as<string>();
+    double alpha = vm["alpha"].as<double>();
+    int maxLevel = vm["max-level"].as<int>();
+    bool workstealing = vm.count("workstealing");
+
     string csvExportFile;
     if (vm.count("csv-export"))
     {
         csvExportFile = vm["csv-export"].as<string>();
     }
 
-#ifdef NDEBUG
-    bool verbose = vm.count("verbose") != 0;
-#else
-    std::cout << "Debug mode, verbose is on." << std::endl;
-    bool verbose = true;
-#endif
-
-    if (verbose)
-    {
-        cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
-        cout << "Using following GPUs:" << endl;
-        for (auto deviceId : gpuList) {
-            cout << "\t" << deviceId << endl;
-        }
-        cout << "Reading file: " << inputFile << endl;
-        if (csvExportFile != "") {
-            cout << "Export metrics to CSV file: " << csvExportFile << endl;
-        }
-    }
-
-    string _match(inputFile);
-    shared_ptr<arma::mat> array_data;
-    vector<string> column_names(0);
-
-    if (_match.find(".csv") != string::npos)
-    {
-        array_data = CSVParser::read_csv_to_mat(inputFile, column_names);
-    }
-    else
-    {
-        cout << "Cannot process file '" << inputFile << "\'." << endl;
-        cout << "Has to be .csv format." << endl;
-        return -1;
-    }
-
-    int heterogeneity = 0;
+    /**
+     * Start building Skeleton Calculator from options
+     */
+    SkeletonCalculator skeletonCalculator = SkeletonCalculator(maxLevel, alpha, workstealing, csvExportFile, verbose);
 
     if (vm.count("gpu-only")) {
-        heterogeneity = 1;
+        skeletonCalculator.set_heterogeneity(Heterogeneity::GPUOnly);
     } else if (vm.count("cpu-only")) {
-        heterogeneity = 2;
+        skeletonCalculator.set_heterogeneity(Heterogeneity::CPUOnly);
     }
+
+    if (vm.count("gpus")) {
+        skeletonCalculator.set_gpu_list(vm["gpus"].as<vector<int>>());
+    }
+
+
+    bool print_sepsets = vm.count("print-sepsets");
+    bool use_p9_ats = vm.count("power9-ats");
 
     if (vm.count("corr"))
     {
@@ -131,19 +115,23 @@ int main(int argc, char const *argv[])
             cout << "Observation count needed with correlation matrix input" << endl;
             return -1;
         }
-
-        MMState state = MMState(array_data.get()->n_cols, vm["observations"].as<int>(), alpha, maxLevel, gpuList[0]);
-        memcpy(state.cor, array_data.get()->begin(), state.p * state.p * sizeof(double));
-        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
+        int observation_count = vm["observations"].as<int>();
+        skeletonCalculator.add_correlation_matrix(inputFile, observation_count, use_p9_ats);
     }
     else
     {
-        MMState state = MMState(array_data.get()->n_cols, (int)array_data.get()->n_rows, alpha, maxLevel, gpuList[0]);
-        gpuPMCC(array_data.get()->begin(), state.p, state.observations, state.cor, gpuList[0], verbose);
-        auto balancer = Balancer(gpuList, &state, {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()}, static_cast<Heterogeneity>(heterogeneity), verbose);
-        calcSkeleton(&state, gpuList, verbose, vm.count("workstealing"), csvExportFile, balancer, vm.count("print-sepsets"));
+        skeletonCalculator.add_observations(inputFile, use_p9_ats);
     }
+
+    tuple<float, float, float> balancer_thresholds = {vm["row-mult"].as<float>(), vm["row-mult2"].as<float>(), vm["row-mult3"].as<float>()};
+
+    skeletonCalculator.initialize_balancer(balancer_thresholds);
+
+
+    /**
+     * Run skeleton estimation
+     */
+    skeletonCalculator.run(print_sepsets);
 
     return 0;
 }

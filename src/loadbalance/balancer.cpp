@@ -1,10 +1,9 @@
 #include "balancer.hpp"
 #include "../util/cuda_util.cuh"
+#include "../util/assertions.hpp"
 #include <iostream>
 #include <future>
 #include <cmath>
-#include <algorithm>
-#include <vector>
 #include <omp.h>
 #include <chrono>
 
@@ -111,7 +110,6 @@ int64_t Balancer::balance(int level)
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows + 1, missing_rows});
           balancedOnGPU += missing_rows;
           int deviceId = gpuList[balancedRows / rowsPerGPU];
-          state->prefetchRows(balancedRows + 1, missing_rows, deviceId);
         }
         // Balance row on CPU
         cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
@@ -125,7 +123,6 @@ int64_t Balancer::balance(int level)
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows + 1, missing_rows});
       balancedOnGPU += missing_rows;
       int deviceId = gpuList[balancedRows / rowsPerGPU];
-      state->prefetchRows(balancedRows + 1, missing_rows, deviceId);
     }
   }
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -160,17 +157,21 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
 
   if (level != 0)
   {
+#if MIGRATE_EDGES
     cpuExecutor->migrateEdges(level, verbose);
+#endif
     int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
     for (int i = 0; i < gpuList.size(); i++)
     {
       state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
     }
   }
+#if MIGRATE_EDGES
   else if (heterogeneity == Heterogeneity::CPUOnly)
   {
     cpuExecutor->migrateEdges(level, verbose);
   }
+#endif
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
   if (verbose)
@@ -180,29 +181,6 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
               << std::endl;
   }
   return {resCPU, resGPU};
-}
-
-void assertNodeStatus(MMState *state, int level)
-{
-  if (level > 0)
-  {
-    bool edge_not_done = level % 2 == 0;
-    for (int i = 0; i < state->p; i++)
-    {
-      for (int j = 0; j < state->p; j++)
-      {
-        bool status = state->node_status[i * state->p + j];
-        if (state->adj[i * state->p + j] == 1 && state->adj[i * state->p + state->p - 1] >= level - 1 && i != j)
-        {
-          if (edge_not_done != status)
-          {
-            std::cout << "row " << i << " col " << j << std::endl;
-          }
-          assert(edge_not_done == status);
-        }
-      }
-    }
-  }
 }
 
 std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
@@ -216,6 +194,8 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
 #ifndef NDEBUG
   assertNodeStatus(state, level);
 #endif
+
+  std::fill_n(state->node_status, state->p * state->p, false);
 
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
@@ -233,7 +213,9 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
 
   if (level != 0)
   {
+#if MIGRATE_EDGES
     cpuExecutor->migrateEdges(level, verbose);
+#endif
     int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
     for (int i = 0; i < gpuList.size(); i++)
     {

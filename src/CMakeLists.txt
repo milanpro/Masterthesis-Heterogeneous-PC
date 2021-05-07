@@ -9,8 +9,6 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
 endif()
 
 set(SOURCE_FILES
-    csv_parser.hpp
-    csv_parser.cpp
     correlation/corHelper.cu
     correlation/corOwn.cu
     correlation/corOwn.cuh
@@ -25,6 +23,8 @@ set(SOURCE_FILES
     executor/independence/gpuInd.cuh
     executor/testing/cpuRowTests.cpp
     executor/testing/cpuRowTests.hpp
+    executor/testing/cpuUtil.cpp
+    executor/testing/cpuUtil.hpp
     executor/testing/cpuWorkstealingTests.cpp
     executor/testing/cpuWorkstealingTests.cpp
     executor/testing/gpuRowTests.cu
@@ -42,6 +42,11 @@ set(SOURCE_FILES
     util/cuda_util.cuh
     util/state.cu
     util/state.cuh
+    util/csv_parser.hpp
+    util/csv_parser.cpp
+    util/sepset_util.hpp
+    util/assertions.hpp
+    util/assertions.cpp
 )
 
 add_executable(heterogpc main.cpp ${SOURCE_FILES})

@@ -9,7 +9,7 @@
 
 void gpuPMCC(const double *h_mat, uint64_t n, int dim, double *cors, int deviceId, bool verbose) {
   if (verbose)
-    printf("Cor started with N=%llu, dim=%i\n", n, dim);
+    printf("Cor started with N=%lu, dim=%i\n", n, dim);
 
   checkCudaErrors(cudaSetDevice(deviceId));
   size_t dbytes = sizeof(double);

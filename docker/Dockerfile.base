@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.2.2-devel-centos8
+FROM nvidia/cuda:11.3-devel-centos8
 
 RUN dnf update
 RUN yum -y install dnf-plugins-core

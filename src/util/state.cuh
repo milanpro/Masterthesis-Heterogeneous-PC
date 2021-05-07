@@ -2,7 +2,13 @@
 #include "./cuda_util.cuh"
 #include <stdint.h>
 #include <vector>
-#include <cuda/atomic>
+
+#if WITH_CUDA_ATOMICS
+  #include <cuda/atomic>
+  typedef cuda::atomic<bool> statusbool;
+#else
+  typedef bool statusbool;
+#endif
 
 /**
 Saves every important value/structure needed for the indepTests.
@@ -20,6 +26,7 @@ others. (Data structure maybe change.)
 */
 
 struct MMState {
+  bool ats;
   double *pMax;
   int *adj;
   int *adj_compact;
@@ -32,10 +39,11 @@ struct MMState {
   int *max_adj;
   int *lock;
   int maxLevel;
-  cuda::atomic<bool> *node_status;
+  statusbool *node_status;
   bool gpu_done;
 
-  MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId);
+  MMState(){}
+  MMState(uint64_t p, int observations, double alpha, int maxLevel, int mainDeviceId, bool ats = false);
 
   void adviceReadonlyCor(std::vector<int> gpuList);
 
