@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.2.2-devel-centos8
+FROM nvidia/cuda:11.3-devel-centos8
 
 RUN dnf update
 RUN yum -y install dnf-plugins-core
@@ -17,9 +17,9 @@ RUN dnf --enablerepo=powertools -y install \
 # CMake
 RUN mkdir -p /tmp/cmake && \
     cd /tmp/cmake && \
-    wget 'https://cmake.org/files/v3.20/cmake-3.20.0.tar.gz' && \
-    tar -xzf cmake-3.20.0.tar.gz && \
-    cd /tmp/cmake/cmake-3.20.0 && \
+    wget 'https://cmake.org/files/v3.20/cmake-3.20.2.tar.gz' && \
+    tar -xzf cmake-3.20.2.tar.gz && \
+    cd /tmp/cmake/cmake-3.20.2 && \
     ./bootstrap --prefix=/usr/local && \
     make -j$(nproc) && \
     make install && \

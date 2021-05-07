@@ -1,6 +1,7 @@
 #include "cpuExecutor.hpp"
 #include "./testing/cpuWorkstealingTests.hpp"
 #include "./testing/cpuRowTests.hpp"
+#include "./testing/cpuUtil.hpp"
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -38,16 +39,19 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
       {
         auto col_node = state->adj_compact[row_node * p + col];
         bool expected = false;
-        if (col_node != row_node && state->node_status[row_node * p + col_node].compare_exchange_strong(expected, true))
+        if (col_node != row_node)
         {
-          state->node_status[row_node * p + col_node] = 1;
-          if (level == 1)
+#if WITH_CUDA_ATOMICS
+          bool active = state->node_status[row_node * p + col_node].compare_exchange_strong(expected, true);
+#else
+          bool active = !state->node_status[row_node * p + col_node];
+#endif
+          if (active)
           {
-            testEdgeWorkstealingL1(state, row_node, col, col_node, deletedEdges, row_length, edges_done);
-          }
-          else
-          {
-            testEdgeWorkstealingLN(state, row_node, col, col_node, deletedEdges, row_length, edges_done, level);
+#if WITH_CUDA_ATOMICS
+            state->node_status[row_node * p + col_node] = true;
+#endif
+            testEdgeWorkstealing(state, row_node, col, col_node, deletedEdges, row_length, edges_done, level);
           }
         }
       }
@@ -124,42 +128,13 @@ void CPUExecutor::migrateEdges(int level, bool verbose)
   DeletedEdge delEdge;
   while (deletedEdges->try_dequeue(delEdge))
   {
-    state->adj[state->p * delEdge.row + delEdge.col] = 0;
-    state->adj[state->p * delEdge.col + delEdge.row] = 0;
-
-    if (delEdge.row < delEdge.col)
+    if (level == 0)
     {
-      state->pMax[state->p * delEdge.row + delEdge.col] = delEdge.pMax;
-      if (level == 0)
-      {
-        state->sepSets[delEdge.row * state->p * state->maxCondSize +
-                       delEdge.col * state->maxCondSize] = -2;
-      }
-      else
-      {
-        for (int j = 0; j < level; ++j)
-        {
-          state->sepSets[delEdge.row * state->p * state->maxCondSize +
-                         delEdge.col * state->maxCondSize + j] = delEdge.sepSet[j];
-        }
-      }
+      deleteEdgeLevel0(state, delEdge.col, delEdge.row, delEdge.pMax);
     }
     else
     {
-      state->pMax[state->p * delEdge.col + delEdge.row] = delEdge.pMax;
-      if (level == 0)
-      {
-        state->sepSets[delEdge.col * state->p * state->maxCondSize +
-                       delEdge.row * state->maxCondSize] = -2;
-      }
-      else
-      {
-        for (int j = 0; j < level; ++j)
-        {
-          state->sepSets[delEdge.col * state->p * state->maxCondSize +
-                         delEdge.row * state->maxCondSize + j] = delEdge.sepSet[j];
-        }
-      }
+      deleteEdge(state, level, delEdge.col, delEdge.row, delEdge.pMax, delEdge.sepSet);
     }
   }
 }

@@ -23,6 +23,8 @@ set(SOURCE_FILES
     executor/independence/gpuInd.cuh
     executor/testing/cpuRowTests.cpp
     executor/testing/cpuRowTests.hpp
+    executor/testing/cpuUtil.cpp
+    executor/testing/cpuUtil.hpp
     executor/testing/cpuWorkstealingTests.cpp
     executor/testing/cpuWorkstealingTests.cpp
     executor/testing/gpuRowTests.cu

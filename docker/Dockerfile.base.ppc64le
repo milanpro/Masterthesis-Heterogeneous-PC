@@ -1,4 +1,4 @@
-FROM nvidia/cuda-ppc64le:11.2.2-devel-centos8
+FROM nvidia/cuda-ppc64le:11.3-devel-centos8
 
 RUN dnf update
 RUN dnf -y install wget

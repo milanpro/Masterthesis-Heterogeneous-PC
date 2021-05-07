@@ -13,17 +13,28 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
 
   size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y];
 
-  if (row_node == col_node) {
+  if (row_node == col_node)
+  {
     return;
   }
 
   __shared__ bool active;
-  if (threadIdx.x == 0) {
+  if (threadIdx.x == 0)
+  {
+#if WITH_CUDA_ATOMICS
     bool expected = false;
     active = state.node_status[row_node * state.p + col_node].compare_exchange_strong(expected, true);
+#else
+    active = !state.node_status[row_node * state.p + col_node];
+    if (active)
+    {
+      state.node_status[row_node * state.p + col_node] = true;
+    }
+#endif
   }
   __syncthreads();
-  if (!active) {
+  if (!active)
+  {
     return;
   }
 
@@ -54,6 +65,7 @@ __global__ void testRowWorkstealingL1(MMState state, int *rows, int start_row, i
           double pVal = pVals[i];
           if (offset + i < state.p && pVal >= state.alpha)
           {
+            state.node_status[col_node * state.p + row_node] = true;
             if (row_node < col_node)
             {
               if (atomicCAS_system(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)
@@ -104,17 +116,28 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
   {
     size_t col_node = state.adj_compact[row_node * state.p + blockIdx.y]; // get actual id
 
-    if (row_node == col_node) {
+    if (row_node == col_node)
+    {
       return;
     }
 
     __shared__ bool active;
-    if (threadIdx.x == 0) {
+    if (threadIdx.x == 0)
+    {
+#if WITH_CUDA_ATOMICS
       bool expected = false;
       active = state.node_status[row_node * state.p + col_node].compare_exchange_strong(expected, true);
+#else
+      active = !state.node_status[row_node * state.p + col_node];
+      if (active)
+      {
+        state.node_status[row_node * state.p + col_node] = true;
+      }
+#endif
     }
     __syncthreads();
-    if (!active) {
+    if (!active)
+    {
       return;
     }
 
@@ -170,7 +193,8 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
               state.cor[sepset_nodes[i - 2] * state.p + sepset_nodes[j - 2]];
         }
       }
-      if ( state.adj[state.p * row_node + col_node] == 0) {
+      if (state.adj[state.p * row_node + col_node] == 0)
+      {
         break;
       }
       pseudoinverse<lvlSize>(Submat, SubmatPInv, v, rv1, w, res1);
@@ -179,6 +203,7 @@ __global__ void testRowWorkstealingLN(MMState state, int *rows, int start_row, i
 
       if (pVal >= state.alpha)
       {
+        state.node_status[col_node * state.p + row_node] = true;
         if (row_node < col_node)
         {
           if (atomicCAS(&state.lock[(state.p * row_node) + col_node], 0, 1) == 0)

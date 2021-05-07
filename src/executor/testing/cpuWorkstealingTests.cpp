@@ -1,5 +1,6 @@
 #include "cpuWorkstealingTests.hpp"
 #include "../independence/cpuInd.hpp"
+#include "./cpuUtil.hpp"
 
 void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done)
 {
@@ -18,15 +19,17 @@ void testEdgeWorkstealingL1(MMState *state, int row_node, int col_node, int actu
       // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
       if (pVal >= state->alpha)
       {
+        state->node_status[actual_col_node * state->p + row_node] = true;
         edges_done++;
-        DeletedEdge result;
-        result.col = actual_col_node;
-        result.row = row_node;
-        result.pMax = pVal;
-        result.sepSet = {state->adj_compact[actual_col_node * p + subIndex]};
-        eQueue->enqueue(result);
+#if MIGRATE_EDGES
+        enqueueEdgeDeletion(eQueue, actual_col_node, row_node, pVal, {state->adj_compact[actual_col_node * p + subIndex]});
+#else
+        deleteEdge(state, 1, actual_col_node, row_node, pVal, {state->adj_compact[actual_col_node * p + subIndex]});
+#endif
         return;
       }
+      if (state->adj[row_node * state->p + actual_col_node] == 0)
+        return;
     }
   }
   state->node_status[row_node * p + actual_col_node] = true;
@@ -88,19 +91,34 @@ void testEdgeWorkstealingLN(MMState *state, int row_node, int col_node, int actu
     // Check pVal in regards to alpha and delete edge + save sepset + save pMax (Needs compare and swap to lock against other threads)
     if (pVal >= state->alpha)
     {
+      state->node_status[actual_col_node * state->p + row_node] = true;
       edges_done++;
-      DeletedEdge result;
-      result.col = actual_col_node;
-      result.row = row_node;
-      result.pMax = pVal;
-      result.sepSet = {sepset_nodes[0]};
+      std::vector<int> sepSet = {sepset_nodes[0]};
       for (int j = 1; j < level; ++j)
       {
-        result.sepSet.push_back(sepset_nodes[j]);
+        sepSet.push_back(sepset_nodes[j]);
       }
-      eQueue->enqueue(result);
+#if MIGRATE_EDGES
+      enqueueEdgeDeletion(eQueue, actual_col_node, row_node, pVal, sepSet);
+#else
+      deleteEdge(state, level, actual_col_node, row_node, pVal, sepSet);
+#endif
       return;
     }
+    if (state->adj[row_node * state->p + actual_col_node] == 0)
+      return;
   }
   edges_done++;
+}
+
+void testEdgeWorkstealing(MMState *state, int row_node, int col_node, int actual_col_node, std::shared_ptr<EdgeQueue> eQueue, int row_count, std::atomic<int> &edges_done, int level)
+{
+  if (level == 1)
+  {
+    testEdgeWorkstealingL1(state, row_node, col_node, actual_col_node, eQueue, row_count, edges_done);
+  }
+  else
+  {
+    testEdgeWorkstealingLN(state, row_node, col_node, actual_col_node, eQueue, row_count, edges_done, level);
+  }
 }
