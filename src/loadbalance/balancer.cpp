@@ -110,7 +110,6 @@ int64_t Balancer::balance(int level)
           gpuExecutor->enqueueSplitTask(SplitTask{balancedRows + 1, missing_rows});
           balancedOnGPU += missing_rows;
           int deviceId = gpuList[balancedRows / rowsPerGPU];
-          state->prefetchRows(balancedRows + 1, missing_rows, deviceId);
         }
         // Balance row on CPU
         cpuExecutor->enqueueSplitTask(SplitTask{row, 1});
@@ -124,7 +123,6 @@ int64_t Balancer::balance(int level)
       gpuExecutor->enqueueSplitTask(SplitTask{balancedRows + 1, missing_rows});
       balancedOnGPU += missing_rows;
       int deviceId = gpuList[balancedRows / rowsPerGPU];
-      state->prefetchRows(balancedRows + 1, missing_rows, deviceId);
     }
   }
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -159,17 +157,21 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
 
   if (level != 0)
   {
+#if MIGRATE_EDGES
     cpuExecutor->migrateEdges(level, verbose);
+#endif
     int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
     for (int i = 0; i < gpuList.size(); i++)
     {
       state->prefetchRows(i * rowsPerGPU, rowsPerGPU, gpuList[i]);
     }
   }
+#if MIGRATE_EDGES
   else if (heterogeneity == Heterogeneity::CPUOnly)
   {
     cpuExecutor->migrateEdges(level, verbose);
   }
+#endif
 
   unsigned long long duration = std::max(resCPU.duration, resGPU.duration);
   if (verbose)
@@ -193,6 +195,8 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
   assertNodeStatus(state, level);
 #endif
 
+  std::fill_n(state->node_status, state->p * state->p, false);
+
   auto cpuExecutor = this->cpuExecutor;
   auto gpuExecutor = this->gpuExecutor;
   cpuExecutor->calculateRowLengthMap(level);
@@ -209,7 +213,9 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
 
   if (level != 0)
   {
+#if MIGRATE_EDGES
     cpuExecutor->migrateEdges(level, verbose);
+#endif
     int rowsPerGPU = (int)std::ceil((float)state->p / (float)gpuList.size());
     for (int i = 0; i < gpuList.size(); i++)
     {
