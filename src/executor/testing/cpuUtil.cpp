@@ -1,5 +1,4 @@
 #include "cpuUtil.hpp"
-#include "../../util/assertions.hpp"
 
 void deleteEdgeLevel0(MMState *state, int col_node, int row_node, double pMax)
 {

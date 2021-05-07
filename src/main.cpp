@@ -66,12 +66,6 @@ int main(int argc, char const *argv[])
     bool verbose = true;
 #endif
 
-#if WITH_CUDA_ATOMICS
-    if (verbose) {
-        cout << "Using CUDA atomics for workstealing synchronization" << endl;
-    }
-#endif
-
     if (vm.count("thread-count"))
     {
         int numberOfThreads = vm["thread-count"].as<int>();
@@ -82,6 +76,12 @@ int main(int argc, char const *argv[])
     double alpha = vm["alpha"].as<double>();
     int maxLevel = vm["max-level"].as<int>();
     bool workstealing = vm.count("workstealing");
+
+#if WITH_CUDA_ATOMICS
+    if (verbose && workstealing) {
+        cout << "Using CUDA atomics for workstealing synchronization" << endl;
+    }
+#endif
 
     string csvExportFile;
     if (vm.count("csv-export"))
