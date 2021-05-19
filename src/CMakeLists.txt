@@ -8,6 +8,8 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+SET(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}")
+
 set(SOURCE_FILES
     correlation/corHelper.cu
     correlation/corOwn.cu
@@ -72,13 +74,20 @@ target_link_libraries(heterogpc
     OpenMP::OpenMP_CXX
 )
 
-IF (OPENMP_FOUND) 
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}") 
+IF (OPENMP_FOUND)
+    IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=-fopenmp-simd")
+    ELSE()
+        SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}")
+    ENDIF()
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=-Wall")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}") 
 ENDIF()  
 
 IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
     SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G") 
+ELSE()
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -lineinfo")
 ENDIF()
 
 if(APPLE)

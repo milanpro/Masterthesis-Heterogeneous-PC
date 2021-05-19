@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.7
 #%%
 import subprocess
 import os
@@ -152,12 +153,12 @@ def interactive_plot_benchmark():
   plot_benchmark(benchmarks[i])
 
 # %%
-working_directory = "benchmarks_delos"
+# working_directory = "benchmarks_delos"
 # %%
-working_directory = "benchmarks_ac922"
+# working_directory = "benchmarks_ac922"
 # %%
 benchmarks = read_benchmarks()
 # %%
 execute_missing_benchmarks(benchmarks)
 # %%
-interactive_plot_benchmark()
+# interactive_plot_benchmark()

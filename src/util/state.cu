@@ -31,7 +31,7 @@ MMState::MMState(uint64_t p, int observations, double alpha, int maxLevel, int m
   std::fill_n(adj, p * p, 1);
   std::fill_n(adj_compact, p * p, 1);
   std::fill_n(node_status, p * p, false);
-  for (int i = 0; i < p; ++i)
+  for (uint64_t i = 0; i < p; ++i)
   {
     adj[i * p + i] = 0;
     adj_compact[i * p + i] = 0;
@@ -79,7 +79,7 @@ void MMState::memAdvise(std::vector<int> gpuList)
   }
 
   int numberOfGPUs = gpuList.size();
-  for (int i = 0; i < gpuList.size(); i++)
+  for (int i = 0; i < numberOfGPUs; i++)
   {
     int deviceId = gpuList[i];
 

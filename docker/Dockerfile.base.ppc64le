@@ -14,6 +14,8 @@ RUN dnf --enablerepo=powertools -y install \
     advance-toolchain-at14.0-devel \
     openblas-devel \
     lapack-devel \
+    arpack-devel \
+    SuperLU-devel \
     openssl-devel \
     boost-devel \
     python38 \
@@ -24,9 +26,9 @@ RUN dnf --enablerepo=powertools -y install \
 # CMake
 RUN mkdir -p /tmp/cmake && \
     cd /tmp/cmake && \
-    wget 'https://cmake.org/files/v3.20/cmake-3.20.0.tar.gz' && \
+    wget 'https://cmake.org/files/v3.20/cmake-3.20.2.tar.gz' && \
     tar -xzf cmake-3.20.0.tar.gz && \
-    cd /tmp/cmake/cmake-3.20.0 && \
+    cd /tmp/cmake/cmake-3.20.2 && \
     ./bootstrap --prefix=/usr/local && \
     make -j$(nproc) && \
     make install && \
@@ -38,9 +40,9 @@ ENV CMAKE_PREFIX_PATH=/opt/at14.0/
 # Armadillo
 RUN mkdir -p /tmp/armadillo && \
     cd /tmp/armadillo && \
-    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.3.0.tar.xz' && \
-    tar -xJf armadillo-10.3.0.tar.xz && \
-    cd /tmp/armadillo/armadillo-10.3.0 && \
+    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.4.1.tar.xz' && \
+    tar -xJf armadillo-10.4.1.tar.xz && \
+    cd /tmp/armadillo/armadillo-10.4.1 && \
     cmake -DCMAKE_CXX_FLAGS="-O3 -flto -fpeel-loops -funroll-loops -ftree-vectorize -ffast-math -mcpu=power9 -mtune=power9" . && \
     make && \
     make install && \
