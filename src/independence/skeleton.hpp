@@ -10,6 +10,7 @@ typedef std::tuple<int64_t, int64_t, std::tuple<TestResult, TestResult>> LevelMe
 class SkeletonCalculator
 {
     int maxLevel;
+    int numThreads;
     double alpha;
     bool verbose;
     bool workstealing;
@@ -21,7 +22,7 @@ class SkeletonCalculator
 
 private:
 public:
-    SkeletonCalculator(int maxLevel, double alpha, bool workstealing, std::string csvExportFile, bool verbose = false);
+    SkeletonCalculator(int maxLevel, double alpha, bool workstealing, std::string csvExportFile, int numThreads, bool verbose = false);
 
     /**
      * Set usage of a specific or all processing units 

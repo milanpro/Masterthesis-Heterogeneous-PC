@@ -18,8 +18,8 @@ struct CPUExecutor : Executor
   std::shared_ptr<EdgeQueue> deletedEdges;
   std::vector<std::tuple<int, int>> rowLengthMap;
 
-  TestResult executeLevel(int level, bool verbose = false);
-  TestResult workstealingExecuteLevel(int level, bool verbose);
+  TestResult executeLevel(int level, int numThreads, bool verbose = false);
+  TestResult workstealingExecuteLevel(int level, int numThreads, bool verbose);
 
   void calculateRowLengthMap(int level);
   void migrateEdges(int level, bool verbose = false);

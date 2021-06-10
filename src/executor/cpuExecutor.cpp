@@ -12,7 +12,7 @@
 
 bool compTuple(std::tuple<int, int> i, std::tuple<int, int> j) { return (std::get<1>(i) > std::get<1>(j)); }
 
-TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
+TestResult CPUExecutor::workstealingExecuteLevel(int level, int numThreads, bool verbose)
 {
   if (level == 0)
   {
@@ -25,7 +25,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
   int max_row_length = std::get<1>(rowLengthMap[0]);
   int row_count = rowLengthMap.size();
   int edge_count = row_count * max_row_length;
-#pragma omp parallel
+#pragma omp parallel num_threads(numThreads) 
   {
     int id = omp_get_thread_num();
     int offset = omp_get_num_threads();
@@ -77,7 +77,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, bool verbose)
   return TestResult{duration, 0};
 }
 
-TestResult CPUExecutor::executeLevel(int level, bool verbose)
+TestResult CPUExecutor::executeLevel(int level, int numThreads, bool verbose)
 {
   if (tasks.size() == 0)
   {
@@ -99,7 +99,7 @@ TestResult CPUExecutor::executeLevel(int level, bool verbose)
   }
   std::sort(sortedRows.begin(), sortedRows.end(), compTuple);
   int p = (int)state->p;
-#pragma omp parallel for shared(state, level, sortedRows, p) default(none) collapse(2) schedule(dynamic, 10)
+#pragma omp parallel for num_threads(numThreads) shared(state, level, sortedRows, p) default(none) collapse(2) schedule(dynamic, 10)
   for (auto i = 0; i < sortedRows.size(); i++)
   {
     for (int col_node = 0; col_node < p; col_node++)

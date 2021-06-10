@@ -135,7 +135,7 @@ int64_t Balancer::balance(int level)
   return duration;
 }
 
-std::tuple<TestResult, TestResult> Balancer::execute(int level)
+std::tuple<TestResult, TestResult> Balancer::execute(int level, int numThreads)
 {
   auto verbose = this->verbose;
   if (verbose)
@@ -148,8 +148,8 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
   auto resGPUFuture = std::async([gpuExecutor, level, verbose] {
     return gpuExecutor->executeLevel(level, false, verbose);
   });
-  auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
-    return cpuExecutor->executeLevel(level, verbose);
+  auto resCPUFuture = std::async([cpuExecutor, level, numThreads, verbose] {
+    return cpuExecutor->executeLevel(level, numThreads, verbose);
   });
 
   TestResult resGPU = resGPUFuture.get();
@@ -183,7 +183,7 @@ std::tuple<TestResult, TestResult> Balancer::execute(int level)
   return {resCPU, resGPU};
 }
 
-std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
+std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level, int numThreads)
 {
   auto verbose = this->verbose;
   if (verbose)
@@ -204,8 +204,8 @@ std::tuple<TestResult, TestResult> Balancer::executeWorkstealing(int level)
   auto resGPUFuture = std::async([gpuExecutor, level, verbose] {
     return gpuExecutor->executeLevel(level, true, verbose);
   });
-  auto resCPUFuture = std::async([cpuExecutor, level, verbose] {
-    return cpuExecutor->workstealingExecuteLevel(level, verbose);
+  auto resCPUFuture = std::async([cpuExecutor, level, numThreads, verbose] {
+    return cpuExecutor->workstealingExecuteLevel(level, numThreads, verbose);
   });
 
   TestResult resGPU = resGPUFuture.get();

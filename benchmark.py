@@ -27,6 +27,7 @@ default_benchmark = {
   "CPU_only" : False,
   "print_sepsets" : False,
   "workstealing" : False,
+  "power9-ats" : False,
   "num_iterations" : 3,
   "numa_node": -1,
   "row-mult": 0.2,
@@ -77,6 +78,8 @@ def execute_iterations(benchmark):
     args.append("-p")
   if (benchmark["workstealing"]):
     args.append("-w")
+  if (benchmark["power9-ats"]):
+    args.append("--power9-ats")
   for gpu in benchmark["GPUs"]:
     args.append("-g")
     args.append(str(gpu))

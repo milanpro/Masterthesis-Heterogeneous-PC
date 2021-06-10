@@ -66,10 +66,10 @@ int main(int argc, char const *argv[])
     bool verbose = true;
 #endif
 
+    int numberOfThreads = omp_get_max_threads();
     if (vm.count("thread-count"))
     {
-        int numberOfThreads = vm["thread-count"].as<int>();
-        omp_set_num_threads(numberOfThreads);
+        numberOfThreads = vm["thread-count"].as<int>();
     }
 
     string inputFile = vm["input-file"].as<string>();
@@ -92,7 +92,7 @@ int main(int argc, char const *argv[])
     /**
      * Start building Skeleton Calculator from options
      */
-    SkeletonCalculator skeletonCalculator = SkeletonCalculator(maxLevel, alpha, workstealing, csvExportFile, verbose);
+    SkeletonCalculator skeletonCalculator = SkeletonCalculator(maxLevel, alpha, workstealing, csvExportFile, numberOfThreads, verbose);
 
     if (vm.count("gpu-only")) {
         skeletonCalculator.set_heterogeneity(Heterogeneity::GPUOnly);

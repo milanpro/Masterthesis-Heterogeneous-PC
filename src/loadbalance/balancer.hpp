@@ -26,8 +26,8 @@ struct Balancer
   std::shared_ptr<GPUExecutor> gpuExecutor;
 
   int64_t balance(int level);
-  std::tuple<TestResult, TestResult> execute(int level);
-  std::tuple<TestResult, TestResult> executeWorkstealing(int level);
+  std::tuple<TestResult, TestResult> execute(int level, int numThreads);
+  std::tuple<TestResult, TestResult> executeWorkstealing(int level, int numThreads);
   Balancer(){}
   Balancer(std::vector<int> gpuList, MMState *state, std::tuple<float, float, float> row_multipliers, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-SkeletonCalculator::SkeletonCalculator(int maxLevel, double alpha, bool workstealing, string csvExportFile, bool verbose) : maxLevel(maxLevel), alpha(alpha), workstealing(workstealing), csvExportFile(csvExportFile), verbose(verbose)
+SkeletonCalculator::SkeletonCalculator(int maxLevel, double alpha, bool workstealing, string csvExportFile, int numThreads, bool verbose) : maxLevel(maxLevel), alpha(alpha), workstealing(workstealing), csvExportFile(csvExportFile), numThreads(numThreads), verbose(verbose)
 {
   gpuList = {0};
   heterogeneity = Heterogeneity::All;
@@ -108,7 +108,7 @@ LevelMetrics SkeletonCalculator::calcLevel(int level)
   int device_row_count = (state.p + numberOfGPUs - 1) / numberOfGPUs;
   if (level >= 1)
   {
-#pragma omp parallel for
+#pragma omp parallel for num_threads(numberOfGPUs) 
     for (int i = 0; i < numberOfGPUs; i++)
     {
       callCompact(&state, gpuList[i], i, numberOfGPUs, device_row_count);
@@ -134,12 +134,12 @@ LevelMetrics SkeletonCalculator::calcLevel(int level)
     {
       state.prefetchRows(i * device_row_count, device_row_count, gpuList[i]);
     }
-    execRes = balancer.executeWorkstealing(level);
+    execRes = balancer.executeWorkstealing(level, numThreads);
   }
   else
   {
     balanceDur = balancer.balance(level);
-    execRes = balancer.execute(level);
+    execRes = balancer.execute(level, numThreads);
   }
 
   auto levelDur = chrono::duration_cast<chrono::milliseconds>(
