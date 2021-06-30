@@ -90,11 +90,20 @@ def bench(name, system, attribute = None):
     "attribute": attribute
   }
 # %%
-pre_balanced = [bench("pre_balanced", "delos"), bench("pre_balanced", "delos", "noatomics"), bench("pre_balanced", "delos", "nomigrations")]
+pre_balanced = [bench("pre_balanced", "delos"), bench("pre_balanced_numa0", "delos"), bench("pre_balanced", "delos", "noatomics"), bench("pre_balanced", "delos", "nomigrations")]
+
+compare(pre_balanced)
+# %%
+pre_balanced = [bench("gpu_only", "ac922"), bench("pre_balanced", "ac922"), bench("pre_balanced_numa0", "ac922"), bench("workstealing", "ac922"), bench("workstealing_numa0", "ac922")]
 
 compare(pre_balanced)
 # %%
 comp = [bench("gpu_only", "delos"), bench("pre_balanced", "delos"), bench("workstealing_78_threads", "delos"), bench("workstealing_1_thread_numa0", "ac922", "nosmt")]
+
+plt = compare(comp)
+
+# %%
+comp = [bench("gpu_only", "delos"), bench("workstealing", "delos"), bench("workstealing_numa0", "delos"), bench("workstealing", "delos", "noatomics"), bench("workstealing", "delos", "nomigrations")]
 
 plt = compare(comp)
 
@@ -127,4 +136,173 @@ compare(comp)
 comp = [bench("workstealing_45000", "delos"), bench("gpu_only_45000", "delos"), bench("workstealing_1_threads_45000", "delos"), bench("workstealing_78_threads_45000", "delos")]
 
 compare(comp)
+# %%
+comp = [bench("workstealing_1_thread", "delos"), bench("workstealing_2_threads", "delos"), bench("workstealing_3_threads", "delos"), bench("workstealing_4_threads", "delos"), bench("workstealing_5_threads", "delos"), bench("workstealing_20_threads", "delos"), bench("workstealing_40_threads", "delos"), bench("workstealing_60_threads", "delos"), bench("workstealing_78_threads", "delos"), bench("workstealing", "delos")]
+for i in comp:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["duration"] = data["data"][-1]
+
+y_pos = np.arange(len(comp))
+performance = [i["duration"] for i in comp]
+objects = ["1","2","3","4","5","20","40","60","78","80"]
+plt.bar(y_pos, performance, align='center', alpha=0.5)
+axes = plt.gca()
+axes.set_ylabel("milliseconds")
+axes.set_xlabel("thread count")
+axes.yaxis.grid(True)
+axes.set_title("Multithreaded workstealing execution time - Delos")
+plt.xticks(y_pos, objects)
+plt.show()
+fig = axes.get_figure()
+fig.savefig("./threaded_wsteal.pdf", bbox_inches = 'tight')
+
+plt.close()
+# %%
+comp = [bench("gpu_only", "delos"), bench("workstealing_1_thread", "delos"), bench("workstealing_78_threads", "delos"), bench("workstealing_45000", "delos"), bench("gpu_only_45000", "delos"), bench("workstealing_1_threads_45000", "delos"), bench("workstealing_78_threads_45000", "delos"), bench("workstealing_10000", "delos"), bench("gpu_only_10000", "delos"), bench("workstealing_1_thread_10000", "delos"), bench("workstealing_78_threads_10000", "delos"), bench("workstealing_numa0_10000", "delos")]
+
+compare(comp)
+# %%
+# %%
+comp = [bench("gpu_only", "delos"), bench("pre_balanced", "delos"), bench("workstealing_78_threads", "delos")]
+for i in comp:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["L0"] = data["data"][3]
+  i["L1"] = data["data"][7]
+  i["L2"] = data["data"][11]
+  i["L3"] = data["data"][15]
+  i["L4"] = data["data"][19]
+  i["arr"] = [i["L1"], i["L2"], i["L3"], i["L4"]]
+
+labels = ["1", "2", "3", "4"]
+x = np.arange(len(labels))  # the label locations
+width = 0.15  # the width of the bars
+
+fig, ax = plt.subplots()
+gpu_data = comp[0]["arr"]
+pre_data = comp[1]["arr"]
+work_data = comp[2]["arr"]
+
+gpu = ax.bar(x - width, np.divide(gpu_data,gpu_data), width, label='GPU-only')
+pre = ax.bar(x, np.divide(gpu_data,pre_data), width, label='Pre-balanced')
+work = ax.bar(x + width, np.divide(gpu_data,work_data), width, label='Workstealing')
+
+ax.set_ylabel('speedup factor')
+ax.set_title('Speedup factor compared to GPU-only')
+ax.set_xlabel('level')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.yaxis.grid(True)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=5)
+
+# compare(comp)
+fig.tight_layout()
+fig.savefig("./levelwise.pdf", bbox_inches = 'tight')
+plt.show()
+
+# %%
+numa_nosmt = [bench("workstealing_1_thread_numa0", "ac922", "nosmt"), bench("workstealing_2_thread_numa0", "ac922", "nosmt"), bench("workstealing_3_thread_numa0", "ac922", "nosmt"), bench("workstealing_4_thread_numa0", "ac922", "nosmt"), bench("workstealing_5_thread_numa0", "ac922", "nosmt")]
+numa = [bench("workstealing_1_thread_numa0", "ac922"), bench("workstealing_2_thread_numa0", "ac922"), bench("workstealing_3_thread_numa0", "ac922"), bench("workstealing_4_thread_numa0", "ac922"), bench("workstealing_5_thread_numa0", "ac922")]
+
+for i in numa_nosmt:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["duration"] = data["data"][-1]
+for i in numa:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["duration"] = data["data"][-1]
+
+labels = ["1", "2", "3", "4", "5"]
+x = np.arange(len(labels))  # the label locations
+width = 0.15  # the width of the bars
+
+fig, ax = plt.subplots()
+numa_nosmt = [i["duration"] for i in numa_nosmt]
+numa = [i["duration"] for i in numa]
+
+numa_nosmt_bar = ax.bar(x - width/2, numa_nosmt, width, label='NUMA pinned, No SMT')
+numa_bar = ax.bar(x + width/2, numa, width, label='NUMA pinned, SMT-4')
+
+ax.set_ylabel('milliseconds')
+ax.set_title('Workstealing approach execution time with different thread counts')
+ax.set_xlabel('thread count')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.yaxis.grid(True)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=5)
+
+# compare(comp)
+fig.tight_layout()
+fig.savefig("./ac922_threadcount.pdf", bbox_inches = 'tight')
+plt.show()
+# %%
+comp = [bench("gpu_only", "ac922"), bench("workstealing_1_thread_numa0", "ac922")]
+for i in comp:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["L0"] = data["data"][3]
+  i["L1"] = data["data"][7]
+  i["L2"] = data["data"][11]
+  i["L3"] = data["data"][15]
+  i["L4"] = data["data"][19]
+  i["arr"] = [i["L1"], i["L2"], i["L3"], i["L4"]]
+
+labels = ["1", "2", "3", "4"]
+x = np.arange(len(labels))  # the label locations
+width = 0.15  # the width of the bars
+
+fig, ax = plt.subplots()
+gpu_data = comp[0]["arr"]
+work_data = comp[1]["arr"]
+
+gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
+work = ax.bar(x + width/2, np.divide(gpu_data,work_data), width, label='Workstealing, NUMA pinned, 1 Thread')
+
+ax.set_ylabel('speedup factor')
+ax.set_title('Speedup factor compared to GPU-only')
+ax.set_xlabel('level')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.yaxis.grid(True)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=5)
+
+# compare(comp)
+fig.tight_layout()
+fig.savefig("./ac922_levelwise.pdf", bbox_inches = 'tight')
+plt.show()
+# %%
+comp = [bench("gpu_only_10000", "delos"), bench("workstealing_78_threads_10000", "delos")]
+for i in comp:
+  data = search_bench(i["name"], i["system"], i["attribute"])
+  i["L0"] = data["data"][3]
+  i["L1"] = data["data"][7]
+  i["L2"] = data["data"][11]
+  i["L3"] = data["data"][15]
+  i["L4"] = data["data"][19]
+  i["arr"] = [i["L1"], i["L2"], i["L3"], i["L4"]]
+
+labels = ["1", "2", "3", "4"]
+x = np.arange(len(labels))  # the label locations
+width = 0.15  # the width of the bars
+
+fig, ax = plt.subplots()
+gpu_data = comp[0]["arr"]
+work_data = comp[1]["arr"]
+
+gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
+work = ax.bar(x + width/2, np.divide(gpu_data,work_data), width, label='Workstealing')
+
+ax.set_ylabel('speedup factor')
+ax.set_title('Speedup factor compared to GPU-only with 10 000 variables')
+ax.set_xlabel('level')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.yaxis.grid(True)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=5)
+
+# compare(comp)
+fig.tight_layout()
+fig.savefig("./levelwise_scaled.pdf", bbox_inches = 'tight')
+plt.show()
 # %%

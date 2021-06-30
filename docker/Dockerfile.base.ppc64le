@@ -35,14 +35,14 @@ RUN mkdir -p /tmp/cmake && \
     cd /tmp && \
     rm -rf /tmp/cmake
 
-ENV CMAKE_PREFIX_PATH=/opt/at14.0/
+ENV CMAKE_PREFIX_PATH=/opt/at13.0/
 
 # Armadillo
 RUN mkdir -p /tmp/armadillo && \
     cd /tmp/armadillo && \
-    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.4.1.tar.xz' && \
-    tar -xJf armadillo-10.4.1.tar.xz && \
-    cd /tmp/armadillo/armadillo-10.4.1 && \
+    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.5.1.tar.xz' && \
+    tar -xJf armadillo-10.5.1.tar.xz && \
+    cd /tmp/armadillo/armadillo-10.5.1 && \
     cmake -DCMAKE_CXX_FLAGS="-O3 -flto -fpeel-loops -funroll-loops -ftree-vectorize -ffast-math -mcpu=power9 -mtune=power9" . && \
     make && \
     make install && \
