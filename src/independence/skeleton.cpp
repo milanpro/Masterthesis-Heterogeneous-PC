@@ -154,7 +154,6 @@ void SkeletonCalculator::run(bool print_sepsets)
 
   if (verbose)
   {
-    cout << "Using " << omp_get_max_threads() << " OpenMP thread(s) in pool" << endl;
     cout << "Using following GPUs:" << endl;
     for (auto deviceId : gpuList)
     {

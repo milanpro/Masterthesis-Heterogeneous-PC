@@ -32,7 +32,7 @@ TestResult CPUExecutor::workstealingExecuteLevel(int level, int numThreads, bool
     int idx = edge_count - id;
     int col = idx % max_row_length;
     int row = row_count - ((idx - col) / max_row_length);
-    while (state->gpu_done != gpu_done)
+    while (state->gpu_done != gpu_done && row != p)
     {
       auto [row_node, row_length] = rowLengthMap[row];
       if (row_length > col && row_length > level)

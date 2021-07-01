@@ -20,11 +20,18 @@ namespace CPU
     // x2: edge i, k
     // x3: edge j, k
     double r = (x1 - x2 * x3) / sqrt((1.0 - x3 * x3) * (1.0 - x2 * x2));
+    if (boost::math::isnan(x1) || boost::math::isnan(x2) || boost::math::isnan(x3)) {
+      return std::numeric_limits<double>::quiet_NaN();
+    }
     return calcPValue(r, sampleSize);
   }
 
   double pValLN(arma::dmat Submat, int observations)
   {
+    for (auto i = 0; i < Submat.n_rows; ++i)
+      for (auto j = 0; j < Submat.n_cols; ++j)
+        if ((boost::math::isnan)(Submat(i, j))) return std::numeric_limits<double>::quiet_NaN();
+
     arma::mat SubmatPInv = arma::pinv(Submat);
     double r = -SubmatPInv(0, 1) / sqrt(SubmatPInv(0, 0) * SubmatPInv(1, 1));
     return calcPValue(r, observations);
