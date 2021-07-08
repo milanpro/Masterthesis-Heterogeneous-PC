@@ -1,9 +1,123 @@
 {
   "benchmarks": [
     {
+      "csv_file": "benchmark_workstealing_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1
+    },
+    {
+      "csv_file": "benchmark_workstealing_1_thread_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "OMPThreads" : 1
+    },
+    {
+      "csv_file": "benchmark_workstealing_78_threads_10000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "OMPThreads" :78
+    },
+    {
+      "csv_file": "benchmark_workstealing_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "max_level": 1
+    },
+    {
+      "csv_file": "benchmark_workstealing_78_threads_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "max_level": 1,
+      "OMPThreads" :78
+    },
+    {
+      "csv_file": "benchmark_workstealing_1_threads_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": true,
+      "num_iterations": 1,
+      "max_level": 1,
+      "OMPThreads" :1
+    },
+    {
+      "csv_file": "benchmark_gpu_only_45000.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
+      "workstealing": false,
+      "num_iterations": 1,
+      "GPU_only": true,
+      "max_level": 1
+    },
+    {
       "csv_file": "benchmark_workstealing.csv",
       "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
       "workstealing": true,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_78_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 78,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_1_thread.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 1,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_2_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 2,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_3_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 3,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_4_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 4,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_5_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 5,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_20_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 20,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_40_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 40,
+      "num_iterations": 5
+    },
+    {
+      "csv_file": "benchmark_workstealing_60_threads.csv",
+      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
+      "workstealing": true,
+      "OMPThreads" : 60,
       "num_iterations": 5
     },
     {
@@ -52,24 +166,6 @@
       "numa_node": 0
     },
     {
-      "csv_file": "benchmark_pre_balanced_dynamic_scheduling.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 5
-    },
-    {
-      "csv_file": "benchmark_pre_balanced_dynamic_sorted_scheduling.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 5
-    },
-    {
-      "csv_file": "benchmark_pre_balanced_dynamic_sorted_scheduling_aligned.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-1000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 5
-    },
-    {
       "csv_file": "benchmark_workstealing_numa0_10000.csv",
       "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
       "workstealing": true,
@@ -83,36 +179,6 @@
       "workstealing": false,
       "num_iterations": 1,
       "GPU_only": true
-    },
-    {
-      "csv_file": "benchmark_gpu_only_45000.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 1,
-      "GPU_only": true,
-      "max_level": 1
-    },
-    {
-      "csv_file": "benchmark_workstealing_numa0_45000.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
-      "workstealing": true,
-      "num_iterations": 1,
-      "OMPThreads" : 40,
-      "numa_node": 0,
-      "max_level": 1
-    },
-    {
-      "csv_file": "benchmark_prebalanced_10000.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-10000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 1
-    },
-    {
-      "csv_file": "benchmark_prebalanced_45000.csv",
-      "input_file": "/home/Christopher.Hagedorn/genData/TCGA-GBM-45000-cor.csv",
-      "workstealing": false,
-      "num_iterations": 1,
-      "max_level": 1
     }
   ]
 }

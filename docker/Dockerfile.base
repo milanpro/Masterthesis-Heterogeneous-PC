@@ -29,9 +29,9 @@ RUN mkdir -p /tmp/cmake && \
 # Armadillo
 RUN mkdir -p /tmp/armadillo && \
     cd /tmp/armadillo && \
-    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.4.1.tar.xz' && \
-    tar -xJf armadillo-10.4.1.tar.xz && \
-    cd /tmp/armadillo/armadillo-10.4.1 && \
+    wget 'https://sourceforge.net/projects/arma/files/armadillo-10.5.1.tar.xz' && \
+    tar -xJf armadillo-10.5.1.tar.xz && \
+    cd /tmp/armadillo/armadillo-10.5.1 && \
     ./configure && \
     make && \
     make install && \
