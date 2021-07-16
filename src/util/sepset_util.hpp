@@ -2,6 +2,10 @@
 #include <string>
 #include <iostream>
 
+/**
+ * Prints seperation sets that were used to delete specific edges and count the resulting edge coun still in the graph.
+ * @param showSepsets If set to false, only the edge count is returned
+ */
 int printSepsets(MMState *state, bool showSepsets, bool verbose)
 {
   int nrEdges = 0;

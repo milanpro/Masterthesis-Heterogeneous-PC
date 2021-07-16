@@ -7,6 +7,7 @@
 using namespace std;
 namespace po = boost::program_options;
 
+// Default input dataset for execution without arguments
 #ifdef __linux__
 const string DEFAULT_INPUT_FILE = "../../data/cooling_house.csv";
 #elif _WIN32
@@ -38,7 +39,10 @@ int main(int argc, char const *argv[])
         ("workstealing,w", "use workstealing CPU executor")
         ("print-sepsets,p", "prints-sepsets")
         ("verbose,v", "verbose output");
-
+    
+    /**
+     * Evaluation of program options
+     */
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
     if (vm.count("help"))

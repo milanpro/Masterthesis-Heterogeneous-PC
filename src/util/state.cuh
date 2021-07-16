@@ -22,6 +22,7 @@ knowledge of the structure.
 others. (Data structure maybe change.)
 @param observations Number of observations.
 @param p number of variables.
+@param ats Uses malloc for unified memory (Crashes without address translation service on power architecture)
 
 */
 

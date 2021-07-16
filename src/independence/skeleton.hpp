@@ -58,6 +58,16 @@ public:
      * Run skeleton calculation
      */
     void run(bool print_sepsets);
+
+    /**
+     * Start execution of a single level.
+     * Includes balancing and invocation of each executor
+     * @param level The level which is executed
+     */
     LevelMetrics calcLevel(int level);
+
+    /**
+     * Exports the execution duration metrics to a csv file
+     */
     void export_metrics(std::vector<LevelMetrics> levelMetrics, int64_t executionDuration, int nrEdges);
 };

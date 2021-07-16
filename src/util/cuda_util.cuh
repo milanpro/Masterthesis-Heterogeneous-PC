@@ -7,7 +7,7 @@
 #define MAX(a, b) (a > b ? a : b)
 #endif
 
-// Iterations used in psueoinverse calculation
+// Iterations used in pseudoinverse calculation
 #ifndef ITERATIONS
 #define ITERATIONS 30
 #endif
@@ -20,6 +20,7 @@
 #define SIGN(a, b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #endif
 
+// Number of threads used for a block in level 1+, should be a multiple of the warpsize
 #ifndef NUMTHREADS
 #define NUMTHREADS 64
 #endif

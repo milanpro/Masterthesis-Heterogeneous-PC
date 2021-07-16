@@ -1,4 +1,9 @@
 #!/usr/bin/env python3.7
+
+# Script to execute multiple benchmarks
+# Reads benchmarks to be done from a json file
+# Executes each benchmark one after another
+
 #%%
 import subprocess
 import os

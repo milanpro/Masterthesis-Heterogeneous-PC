@@ -1,3 +1,5 @@
+# Helper script to create diagrams used in the thesis
+
 #%%
 import numpy as np
 import pandas as pd
@@ -22,6 +24,7 @@ def read_benchmarks(file):
 
 #%%
 benchmarks_delos = read_benchmarks(delos_benchmark_files / benchmark_json)
+#%%
 benchmarks_delos_noatomics = read_benchmarks(delos_noatomics_benchmark_files / benchmark_json)
 benchmarks_delos_nomigrations = read_benchmarks(delos_nomigrations_benchmark_files / benchmark_json)
 
@@ -48,16 +51,18 @@ def attach_data(dir, benchmarks, system, attribute = None):
     bench["name"] = bench["csv_file"].removeprefix("benchmark_").removesuffix(".csv")
     bench["system"] = system
     bench["attribute"] = attribute
-
+#%%
 attach_data(delos_benchmark_files, benchmarks_delos, "delos")
+#%%
 attach_data(delos_noatomics_benchmark_files, benchmarks_delos_noatomics, "delos", "noatomics")
 attach_data(delos_nomigrations_benchmark_files, benchmarks_delos_nomigrations, "delos", "nomigrations")
 
 attach_data(ac922_benchmark_files, benchmarks_ac922, "ac922")
 attach_data(ac922_nosmt_benchmark_files, benchmarks_ac922_nosmt, "ac922", "nosmt")
-
+#%%
 benchmarks = []
 benchmarks.extend(benchmarks_delos)
+#%%
 benchmarks.extend(benchmarks_delos_noatomics)
 benchmarks.extend(benchmarks_delos_nomigrations)
 
@@ -137,23 +142,30 @@ comp = [bench("workstealing_45000", "delos"), bench("gpu_only_45000", "delos"), 
 
 compare(comp)
 # %%
-comp = [bench("workstealing_1_thread", "delos"), bench("workstealing_2_threads", "delos"), bench("workstealing_3_threads", "delos"), bench("workstealing_4_threads", "delos"), bench("workstealing_5_threads", "delos"), bench("workstealing_20_threads", "delos"), bench("workstealing_40_threads", "delos"), bench("workstealing_60_threads", "delos"), bench("workstealing_78_threads", "delos"), bench("workstealing", "delos")]
+comp = []
+objects = []
+for i in range(80):
+  comp.append(bench(f'workstealing_{i + 1}_threads', "delos"))
+  objects.append(str(i+1))
 for i in comp:
   data = search_bench(i["name"], i["system"], i["attribute"])
   i["duration"] = data["data"][-1]
 
-y_pos = np.arange(len(comp))
-performance = [i["duration"] for i in comp]
-objects = ["1","2","3","4","5","20","40","60","78","80"]
+y_pos = np.arange(1, len(comp) + 1)
+performance = [i["duration"] / 1000 for i in comp]
 plt.bar(y_pos, performance, align='center', alpha=0.5)
 axes = plt.gca()
-axes.set_ylabel("milliseconds")
+axes.set_ylabel("seconds")
 axes.set_xlabel("thread count")
 axes.yaxis.grid(True)
 axes.set_title("Multithreaded workstealing execution time - Delos")
-plt.xticks(y_pos, objects)
-plt.show()
+plt.xticks(np.arange(0, len(comp) + 1, 5.0))
+plt.axvline(x=12.5, color="red")
+plt.axvline(x=78.5, color="green")
+#plt.xlim(1,80)
 fig = axes.get_figure()
+fig.set_size_inches(10, 5, forward=True)
+plt.show()
 fig.savefig("./threaded_wsteal.pdf", bbox_inches = 'tight')
 
 plt.close()

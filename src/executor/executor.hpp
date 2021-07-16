@@ -5,6 +5,9 @@
 
 struct Executor
 {
+  /**
+   * Task list for that executor. Only used in pre-balanced approach.
+   */
   std::vector<SplitTask> tasks;
 
 public:

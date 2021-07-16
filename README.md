@@ -1,4 +1,8 @@
-### Masterthesis-Heterogeneous-PC
+## Master Thesis - Heterogeneous PC-stable
+
+Implementation of a heterogeneously executed PC-stable algorithm. The implementation is the base of my master thesis and includes two approaches.
+
+The following repos are code bases, that helped developing this project:
 
 https://github.com/ChristopherSchmidt89/EPIC-causality
 
@@ -10,7 +14,7 @@ https://github.com/cran/pcalg
 
 https://nvidia.github.io/libcudacxx/extended_api/synchronization_primitives/atomic.html
 
-#### Docker
+### Docker image build commands
 Build the base image using:
 
 x86_64: `docker build -f docker/Dockerfile.base -t milanpro/cmake-armadillo-python38-centos8 .`
@@ -23,7 +27,32 @@ x86_64: `docker build -f docker/Dockerfile -t milanpro/heterogpc .`
 
 ppc64le: `docker build -f docker/Dockerfile.ppc64le -t milanpro/heterogpc-ppc64le .`
 
-#### Delos NUMA Topology
+### Download Benchmarks and Logs from Delos and AC922
+
+Delos:
+
+`rsync -aP --del "delos:~/Masterthesis-Heterogeneous-PC/benchmarks/" ./benchmarks_delos`
+
+`rsync -aP --del "delos:~/Masterthesis-Heterogeneous-PC/logs/" ./logs_delos`
+
+AC922:
+
+`rsync -aP --del "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/benchmarks/" ./benchmarks_ac922`
+
+`rsync -aP --del "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/logs/" ./logs_ac922`
+
+### TCGA Datasets
+Can be found in: `/home/Christopher.Hagedorn/genData`
+
+Example invocation using a TCGA dataset:
+`/home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc --corr -i "/home/Christopher.Hagedorn/genData/TCGA-GBM-100-cor.csv" -o 3190 -v -t 80`
+
+### AC922 Power9 Findings
+
+https://on-demand.gputechconf.com/gtc/2018/presentation/s8430-everything-you-need-to-know-about-unified-memory.pdf
+https://www.olcf.ornl.gov/wp-content/uploads/2018/03/ORNL_workshop_mar2018.pdf
+
+### Delos System NUMA Topology
 
 ```
 Milan.Proell@delos:~$ nvidia-smi topo -m
@@ -59,47 +88,7 @@ node   0   1
   1:  21  10
 ```
 
-#### Download Benchmarks and Logs
-
-Delos:
-
-`rsync -aP --del "delos:~/Masterthesis-Heterogeneous-PC/benchmarks/" ./benchmarks_delos`
-
-`rsync -aP --del "delos:~/Masterthesis-Heterogeneous-PC/logs/" ./logs_delos`
-
-AC922:
-
-`rsync -aP --del "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/benchmarks/" ./benchmarks_ac922`
-
-`rsync -aP --del "ac92202:/scratch/milan.proell/enroot/enroot/milan-heterogpc-bench/usr/src/project/logs/" ./logs_ac922`
-
-#### TCGA Datasets
-Can be found in: `/home/Christopher.Hagedorn/genData`
-
-`/home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc --corr -i "/home/Christopher.Hagedorn/genData/TCGA-GBM-100-cor.csv" -o 3190 -v -t 80`
- 
-#### Debugging
-/usr/local/cuda/bin/cuda-gdb /home/Milan.Proell/Masterthesis-Heterogeneous-PC/build/src/heterogpc
-
-#### Bugs
-https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded
-Prevent threading segfault : `export OPENBLAS_NUM_THREADS=1`
-
-
-#### Balancing ideas
-
-```
-      float row_size = (float)row_length / (float)(variableCount - 1);
-      float cpu_row_count = cpuExecutor->tasks.size();
-      if (row_size < 0.3f || (row_size < 0.4f && (variableCount - row) <= ompThreadCount - cpu_row_count))
-```
-
-#### AC922 Power9 Findings
-
-https://on-demand.gputechconf.com/gtc/2018/presentation/s8430-everything-you-need-to-know-about-unified-memory.pdf
-https://www.olcf.ornl.gov/wp-content/uploads/2018/03/ORNL_workshop_mar2018.pdf
-
-#### AC922 NUMA Topology
+### AC922 NUMA Topology
 
 ```
 [milan.proell@ac922-02 ~]$ nvidia-smi topo -m

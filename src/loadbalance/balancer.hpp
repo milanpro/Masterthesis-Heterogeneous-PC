@@ -25,9 +25,22 @@ struct Balancer
   std::shared_ptr<CPUExecutor> cpuExecutor;
   std::shared_ptr<GPUExecutor> gpuExecutor;
 
+  /**
+   * Balance tasks onto the executors. (Only necessary for pre-balanced execution)
+   */
   int64_t balance(int level);
+
+  /**
+   * Start executors for both CPU and GPU. Uses the pre-balanced approach.
+   * Tasks have to be balanced beforehand
+   */
   std::tuple<TestResult, TestResult> execute(int level, int numThreads);
+
+  /**
+   * Start both CPU and GPU executors. Uses the workstealing approach.
+   */
   std::tuple<TestResult, TestResult> executeWorkstealing(int level, int numThreads);
+
   Balancer(){}
   Balancer(std::vector<int> gpuList, MMState *state, std::tuple<float, float, float> row_multipliers, Heterogeneity heterogeneity = Heterogeneity::All, bool verbose = false);
 };
