@@ -25,6 +25,8 @@ def read_benchmarks(file):
 #%%
 benchmarks_delos = read_benchmarks(delos_benchmark_files / benchmark_json)
 #%%
+benchmarks_delos_old = read_benchmarks(delos_benchmark_files / "benchmarks_thesis" /benchmark_json)
+#%%
 benchmarks_delos_noatomics = read_benchmarks(delos_noatomics_benchmark_files / benchmark_json)
 benchmarks_delos_nomigrations = read_benchmarks(delos_nomigrations_benchmark_files / benchmark_json)
 
@@ -54,18 +56,21 @@ def attach_data(dir, benchmarks, system, attribute = None):
 #%%
 attach_data(delos_benchmark_files, benchmarks_delos, "delos")
 #%%
+attach_data(delos_benchmark_files / "benchmarks_thesis", benchmarks_delos_old, "delos")
+#%%
 attach_data(delos_noatomics_benchmark_files, benchmarks_delos_noatomics, "delos", "noatomics")
 attach_data(delos_nomigrations_benchmark_files, benchmarks_delos_nomigrations, "delos", "nomigrations")
-
+#%%
 attach_data(ac922_benchmark_files, benchmarks_ac922, "ac922")
 attach_data(ac922_nosmt_benchmark_files, benchmarks_ac922_nosmt, "ac922", "nosmt")
 #%%
 benchmarks = []
 benchmarks.extend(benchmarks_delos)
+benchmarks.extend(benchmarks_delos_old)
 #%%
 benchmarks.extend(benchmarks_delos_noatomics)
 benchmarks.extend(benchmarks_delos_nomigrations)
-
+#%%
 benchmarks.extend(benchmarks_ac922)
 benchmarks.extend(benchmarks_ac922_nosmt)
 # %%
@@ -156,7 +161,7 @@ performance = [i["duration"] / 1000 for i in comp]
 plt.bar(y_pos, performance, align='center', alpha=0.5)
 axes = plt.gca()
 axes.set_ylabel("seconds")
-axes.set_xlabel("thread count")
+axes.set_xlabel("CPU thread count")
 axes.yaxis.grid(True)
 axes.set_title("Multithreaded workstealing execution time - Delos")
 plt.xticks(np.arange(0, len(comp) + 1, 5.0))
@@ -236,7 +241,7 @@ numa_bar = ax.bar(x + width/2, numa, width, label='NUMA pinned, SMT-4')
 
 ax.set_ylabel('milliseconds')
 ax.set_title('Workstealing approach execution time with different thread counts')
-ax.set_xlabel('thread count')
+ax.set_xlabel('CPU thread count')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.yaxis.grid(True)
@@ -266,17 +271,18 @@ fig, ax = plt.subplots()
 gpu_data = comp[0]["arr"]
 work_data = comp[1]["arr"]
 
-gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
-work = ax.bar(x + width/2, np.divide(gpu_data,work_data), width, label='Workstealing, NUMA pinned, 1 Thread')
+# gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
+work = ax.bar(x, np.divide(gpu_data,work_data), width, label='Workstealing, NUMA pinned, 1 Thread')
 
 ax.set_ylabel('speedup factor')
-ax.set_title('Speedup factor compared to GPU-only')
+ax.set_title('NUMA pinned workstealing speedup factor compared to GPU-only')
 ax.set_xlabel('level')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.yaxis.grid(True)
-ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-          fancybox=True, shadow=True, ncol=5)
+ax.axhline(1.0, color = "grey")
+# ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          # fancybox=True, shadow=True, ncol=5)
 
 # compare(comp)
 fig.tight_layout()
@@ -301,17 +307,18 @@ fig, ax = plt.subplots()
 gpu_data = comp[0]["arr"]
 work_data = comp[1]["arr"]
 
-gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
-work = ax.bar(x + width/2, np.divide(gpu_data,work_data), width, label='Workstealing')
+# gpu = ax.bar(x - width/2, np.divide(gpu_data,gpu_data), width, label='GPU-only')
+work = ax.bar(x, np.divide(gpu_data,work_data), width, label='Workstealing')
 
 ax.set_ylabel('speedup factor')
-ax.set_title('Speedup factor compared to GPU-only with 10 000 variables')
+ax.set_title('Workstealing speedup factor compared to GPU-only with 10 000 variables')
 ax.set_xlabel('level')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.yaxis.grid(True)
-ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-          fancybox=True, shadow=True, ncol=5)
+ax.axhline(1.0, color = "grey")
+# ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+#           fancybox=True, shadow=True, ncol=5)
 
 # compare(comp)
 fig.tight_layout()
